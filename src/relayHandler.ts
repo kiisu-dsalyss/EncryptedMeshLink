@@ -51,11 +51,12 @@ export class RelayHandler {
       console.log(`📤 Relaying to: ${targetNode.user?.longName || 'Unknown'} (${targetNodeId})`);
       
       try {
-        // Resolve sender name
+        // Resolve sender name and include ID for app linking
         const senderNode = this.knownNodes.get(packet.from);
         const senderName = senderNode?.user?.longName || senderNode?.user?.shortName || `Node-${packet.from.toString().slice(-4)}`;
         
-        const relayMessage = `[From ${senderName}]: ${message}`;
+        // Put ID first for clickable links, then name for readability
+        const relayMessage = `[From ${packet.from} (${senderName})]: ${message}`;
         await this.device.sendText(relayMessage, targetNodeId);
         console.log("✅ Message relayed successfully");
         

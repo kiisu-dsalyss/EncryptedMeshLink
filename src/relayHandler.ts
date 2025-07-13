@@ -51,7 +51,11 @@ export class RelayHandler {
       console.log(`📤 Relaying to: ${targetNode.user?.longName || 'Unknown'} (${targetNodeId})`);
       
       try {
-        const relayMessage = `[From ${packet.from}]: ${message}`;
+        // Resolve sender name
+        const senderNode = this.knownNodes.get(packet.from);
+        const senderName = senderNode?.user?.longName || senderNode?.user?.shortName || `Node-${packet.from.toString().slice(-4)}`;
+        
+        const relayMessage = `[From ${senderName}]: ${message}`;
         await this.device.sendText(relayMessage, targetNodeId);
         console.log("✅ Message relayed successfully");
         
@@ -82,15 +86,22 @@ export class RelayHandler {
   }
 
   async handleEchoMessage(packet: any): Promise<void> {
-    // Regular echo functionality for non-relay messages
-    const echoMessage = `Echo: ${packet.data}`;
-    console.log(`📤 Echoing back: "${echoMessage}"`);
+    // Send instructions instead of echo
+    await this.sendInstructions(packet);
+  }
+
+  async sendInstructions(packet: any): Promise<void> {
+    console.log(`📤 Sending instructions to ${packet.from}`);
+    
+    // Try a short message first to see if the issue is message length
+    const shortInstructions = "🤖 Bot ready! Send 'nodes' to list devices or @{nodeId} {message} to relay.";
     
     try {
-      await this.device.sendText(echoMessage, packet.from);
-      console.log("✅ Echo sent successfully");
+      await this.device.sendText(shortInstructions, packet.from);
+      console.log("✅ Instructions sent successfully");
     } catch (error) {
-      console.error("❌ Failed to send echo:", error);
+      console.error("❌ Failed to send instructions:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
     }
   }
 }

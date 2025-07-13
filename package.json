@@ -1,17 +1,30 @@
 {
-  "name": "mesher",
+  "name": "meshtastic-echo-bot",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A Meshtastic echo bot built with Node.js and the official JavaScript library",
+  "main": "echo-bot.js",
   "scripts": {
+    "build": "tsc",
+    "start": "node echo-bot.js",
+    "dev": "ts-node echo-bot.ts",
+    "dev:watch": "ts-node --watch echo-bot.ts",
+    "echo-bot": "ts-node echo-bot.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "meshtastic",
+    "mesh",
+    "radio",
+    "echo",
+    "bot",
+    "lora"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@meshtastic/core": "npm:@jsr/meshtastic__core@^2.6.4",
+    "@meshtastic/protobufs": "npm:@jsr/meshtastic__protobufs@^2.7.0",
     "@types/node": "^22.13.10",
-    "dotenv": "^16.4.7",
     "serialport": "^13.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"

@@ -6,6 +6,26 @@ package-lock.json
 dist/
 *.tsbuildinfo
 
+# Experimental and old files (keep clean project structure)
+bidirectional.ts
+diagnose.ts
+echoBot.ts
+index*.ts
+meshtastic_official.ts
+messageHandler*.ts
+pythonHybrid.ts
+testCommands.ts
+testDeviceCommands.ts
+test_send.py
+workingEcho.ts
+pyMesh/
+protobuf/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
 # macOS system files
 .DS_Store
 .AppleDouble

@@ -83,6 +83,7 @@ async function main() {
     const transport = await TransportNodeSerial.create();
     const device = new MeshDevice(transport);
     let myNodeNum: number | undefined;
+    const knownNodes = new Map<number, any>(); // Store known nodes
 
     console.log("🚀 Connected to device, setting up event listeners...");
 
@@ -96,23 +97,104 @@ async function main() {
       console.log(`📊 Device status changed: ${status}`);
       if (status === 7) { // DeviceConfigured
         console.log("✅ Device configured successfully!");
+        
+        // Show available nodes after configuration
+        setTimeout(() => {
+          showAvailableNodes(knownNodes, myNodeNum);
+        }, 3000);
       }
     });
 
-    // Listen for text messages and echo them back
+    // Listen for node info packets to build node list
+    device.events.onNodeInfoPacket.subscribe((nodeInfo) => {
+      knownNodes.set(nodeInfo.num, {
+        num: nodeInfo.num,
+        user: nodeInfo.user,
+        position: nodeInfo.position,
+        lastSeen: new Date()
+      });
+      console.log(`📍 Node discovered: ${nodeInfo.num} ${nodeInfo.user?.longName || 'Unknown'}`);
+    });
+
+    // Listen for text messages and handle relay commands
     device.events.onMessagePacket.subscribe(async (packet) => {
       console.log(`📨 Received message from ${packet.from}: "${packet.data}"`);
       
       // Check if it's not from ourselves to avoid infinite loops
       if (myNodeNum && packet.from !== myNodeNum) {
-        const echoMessage = `Echo: ${packet.data}`;
-        console.log(`📤 Echoing back: "${echoMessage}"`);
+        // Check if this is a relay command (@{nodeId} message or @{nodeName} message)
+        const relayMatch = packet.data.match(/^@(\w+)\s+(.+)$/i);
         
-        try {
-          await device.sendText(echoMessage, packet.from);
-          console.log("✅ Echo sent successfully");
-        } catch (error) {
-          console.error("❌ Failed to send echo:", error);
+        if (relayMatch) {
+          const targetIdentifier = relayMatch[1].toLowerCase();
+          const message = relayMatch[2];
+          
+          console.log(`🔄 Relay request: Forward "${message}" to "${targetIdentifier}"`);
+          
+          // Find target node by ID or name
+          let targetNodeId: number | undefined;
+          let targetNode: any;
+          
+          // Check if it's a numeric ID
+          if (/^\d+$/.test(targetIdentifier)) {
+            targetNodeId = parseInt(targetIdentifier);
+            targetNode = knownNodes.get(targetNodeId);
+          } else {
+            // Search by name (longName or shortName)
+            knownNodes.forEach((node, nodeId) => {
+              if (!targetNodeId) { // Only set if we haven't found one yet
+                const longName = node.user?.longName?.toLowerCase() || '';
+                const shortName = node.user?.shortName?.toLowerCase() || '';
+                
+                if (longName.includes(targetIdentifier) || shortName.includes(targetIdentifier)) {
+                  targetNodeId = nodeId;
+                  targetNode = node;
+                }
+              }
+            });
+          }
+          
+          if (targetNodeId && targetNode) {
+            console.log(`📤 Relaying to: ${targetNode.user?.longName || 'Unknown'} (${targetNodeId})`);
+            
+            try {
+              const relayMessage = `[From ${packet.from}]: ${message}`;
+              await device.sendText(relayMessage, targetNodeId);
+              console.log("✅ Message relayed successfully");
+              
+              // Send confirmation back to sender
+              await device.sendText(`✅ Message relayed to ${targetNode.user?.longName || targetNodeId}`, packet.from);
+            } catch (error) {
+              console.error("❌ Failed to relay message:", error);
+              await device.sendText(`❌ Failed to relay message to ${targetIdentifier}`, packet.from);
+            }
+          } else {
+            console.log(`❌ Target "${targetIdentifier}" not found in known nodes`);
+            await device.sendText(`❌ Node "${targetIdentifier}" not found. Use 'nodes' to see available nodes.`, packet.from);
+          }
+        } else if (packet.data.toLowerCase() === 'nodes') {
+          // Send list of available nodes
+          const nodeList = Array.from(knownNodes.values())
+            .filter(node => node.num !== myNodeNum)
+            .map(node => `${node.num}: ${node.user?.longName || 'Unknown'}`)
+            .join('\n');
+          
+          const response = nodeList.length > 0 
+            ? `Available nodes:\n${nodeList}\n\nSend: @{nodeId} {message} to relay`
+            : "No other nodes found in mesh network";
+          
+          await device.sendText(response, packet.from);
+        } else {
+          // Regular echo functionality for non-relay messages
+          const echoMessage = `Echo: ${packet.data}`;
+          console.log(`📤 Echoing back: "${echoMessage}"`);
+          
+          try {
+            await device.sendText(echoMessage, packet.from);
+            console.log("✅ Echo sent successfully");
+          } catch (error) {
+            console.error("❌ Failed to send echo:", error);
+          }
         }
       } else {
         console.log("🔄 Skipping echo (message from self or no node info yet)");
@@ -176,3 +258,33 @@ if (require.main === module) {
 }
 
 export { TransportNodeSerial, main };
+
+// Helper function to display available nodes
+function showAvailableNodes(knownNodes: Map<number, any>, myNodeNum?: number) {
+  console.log("\n📡 Known Mesh Nodes:");
+  console.log("===================");
+  
+  if (knownNodes.size === 0) {
+    console.log("No nodes discovered yet");
+    return;
+  }
+
+  const sortedNodes = Array.from(knownNodes.values()).sort((a, b) => a.num - b.num);
+  
+  sortedNodes.forEach(node => {
+    const isSelf = node.num === myNodeNum;
+    const name = node.user?.longName || 'Unknown';
+    const shortName = node.user?.shortName || '????';
+    const selfIndicator = isSelf ? ' (THIS DEVICE)' : '';
+    
+    console.log(`📱 ${node.num}: ${name} [${shortName}]${selfIndicator}`);
+  });
+  
+  console.log(`\n💬 Usage:`);
+  console.log(`   Send "nodes" to get this list`);
+  console.log(`   Send "@{nodeId} {message}" to relay by ID`);
+  console.log(`   Send "@{nodeName} {message}" to relay by name`);
+  console.log(`   Example: "@3616546689 Hello there!"`);
+  console.log(`   Example: "@fester Hello there!"`);
+  console.log("===================\n");
+}

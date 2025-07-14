@@ -1,7 +1,7 @@
 import { MeshDevice } from "@meshtastic/core";
 import { TransportNodeSerial } from "./src/transport";
 import { NodeManager } from "./src/nodeManager";
-import { RelayHandler } from "./src/relayHandler";
+import { EnhancedRelayHandler } from "./src/enhancedRelayHandler";
 import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
 
@@ -9,25 +9,41 @@ async function main() {
   console.log("🔍 Looking for Meshtastic device...");
   
   try {
+    // Load station configuration
+    const fs = await import('fs/promises');
+    const configData = await fs.readFile('./encryptedmeshlink-config.json', 'utf-8');
+    const config = JSON.parse(configData);
+    
+    console.log(`🏗️ Loaded configuration for station: ${config.stationId}`);
+    
     // Create transport and device
     const transport = await TransportNodeSerial.create();
     const device = new MeshDevice(transport);
     let myNodeNum: number | undefined;
-    // Create node manager and relay handler
+    // Create node manager and enhanced relay handler
     const nodeManager = new NodeManager();
     const knownNodes = nodeManager.getKnownNodes();
-    let relayHandler: RelayHandler;
+    let relayHandler: EnhancedRelayHandler;
 
     console.log("🚀 Connected to device, setting up event listeners...");
     console.log("🌉 Initializing EncryptedMeshLink station...");
 
     // Set up all event listeners BEFORE configuring
-    device.events.onMyNodeInfo.subscribe((nodeInfo) => {
+    device.events.onMyNodeInfo.subscribe(async (nodeInfo) => {
       myNodeNum = nodeInfo.myNodeNum;
       console.log(`📱 Station node number: ${myNodeNum}`);
       
-      // Initialize relay handler now that we have node info
-      relayHandler = new RelayHandler(device, knownNodes, myNodeNum);
+      // Initialize enhanced relay handler with bridge support
+      relayHandler = new EnhancedRelayHandler(device, knownNodes, config, myNodeNum);
+      
+      // Initialize bridge services for internet connectivity
+      try {
+        await relayHandler.initializeBridge();
+        console.log("🌉 Internet bridge services started successfully");
+      } catch (bridgeError) {
+        console.warn("⚠️ Bridge initialization failed, running in local-only mode:", bridgeError);
+        // Continue without bridge - local functionality still works
+      }
     });
 
     device.events.onDeviceStatus.subscribe((status) => {
@@ -98,6 +114,25 @@ async function main() {
     setTimeout(() => {
       console.log("🔗 EncryptedMeshLink station ready! Send a message to test bridging!");
     }, 2000);
+
+    // Graceful shutdown handling
+    const shutdown = async (signal: string) => {
+      console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+      
+      if (relayHandler) {
+        try {
+          await relayHandler.stopBridge();
+        } catch (error) {
+          console.warn("⚠️ Error during bridge shutdown:", error);
+        }
+      }
+      
+      console.log("👋 EncryptedMeshLink stopped");
+      process.exit(0);
+    };
+
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
 
     // Send a heartbeat every 30 seconds to keep connection alive
     setInterval(async () => {

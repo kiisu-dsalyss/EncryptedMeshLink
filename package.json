@@ -6,9 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "node encryptedmeshlink.js",
-    "dev": "ts-node encryptedmeshlink.ts",
+    "dev": "tsx encryptedmeshlink.ts",
     "dev:watch": "tsx watch encryptedmeshlink.ts",
-    "encryptedmeshlink": "ts-node encryptedmeshlink.ts",
+    "encryptedmeshlink": "tsx encryptedmeshlink.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -27,8 +27,8 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=24.0.0",
-    "npm": ">=10.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "dependencies": {
     "@meshtastic/core": "npm:@jsr/meshtastic__core@^2.6.4",

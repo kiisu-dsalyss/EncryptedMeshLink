@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node voidbridge.js",
     "dev": "ts-node voidbridge.ts",
-    "dev:watch": "ts-node --transpile-only --files --watch voidbridge.ts",
+    "dev:watch": "tsx watch voidbridge.ts",
     "voidbridge": "ts-node voidbridge.ts",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -27,16 +27,17 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=24.0.0",
     "npm": ">=10.0.0"
   },
   "dependencies": {
     "@meshtastic/core": "npm:@jsr/meshtastic__core@^2.6.4",
     "@meshtastic/protobufs": "npm:@jsr/meshtastic__protobufs@^2.7.0",
-    "@types/node": "^22.13.10",
+    "@types/node": "^24.0.13",
     "serialport": "^13.0.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

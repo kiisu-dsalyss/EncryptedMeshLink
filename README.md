@@ -21,21 +21,10 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 - 🛡️ **Security First** - Zero-knowledge discovery server, end-to-end encryption *(Phase 2)*
 - 🐳 **Docker Ready** - Containerization for development and deployment *(Phase 2)*
 - 📊 **Basic Monitoring** - Simple logging and health checks for Pi deployment *(Phase 2)*
-A powerful internet bridge system for Meshtastic mesh networks with encrypted P2P discovery and message relay capabilities.
-
-## Features
-
-- 🌉 **Internet Bridge** - Connects distant Meshtastic networks via internet
-- � **Encrypted P2P** - RSA + AES encrypted communication between stations  
-- 🔍 **Auto-discovery** - Encrypted peer discovery via PHP service
-- � **Message Relay** - Routes messages between mesh networks
-- 🛡️ **Security First** - Zero-knowledge discovery server, end-to-end encryption
-- � **Docker Ready** - Complete containerization for development and deployment
-- 🏗️ **Modular Architecture** - Clean TypeScript implementation
 
 ## Requirements
 
-- Node.js (v22 LTS or higher)
+- Node.js (v24 LTS or higher)
 - Meshtastic device connected via USB
 - Docker & Docker Compose (for development)
 - TypeScript 5.8+ (for development)

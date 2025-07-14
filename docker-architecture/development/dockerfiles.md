@@ -35,7 +35,7 @@ CMD ["apache2-foreground"]
 Node.js station container:
 
 ```dockerfile
-FROM node:22-alpine
+FROM node:24-alpine
 
 # Install system dependencies
 RUN apk add --no-cache curl sqlite
@@ -79,7 +79,7 @@ CMD ["node", "src/station.js"]
 Meshtastic device simulator:
 
 ```dockerfile
-FROM node:22-alpine
+FROM node:24-alpine
 
 # Install system dependencies
 RUN apk add --no-cache curl
@@ -120,7 +120,7 @@ CMD ["node", "simulator/index.js"]
 Development dashboard and utilities:
 
 ```dockerfile
-FROM node:22-alpine
+FROM node:24-alpine
 
 # Install system dependencies
 RUN apk add --no-cache curl git

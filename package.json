@@ -9,7 +9,10 @@
     "dev": "ts-node voidbridge.ts",
     "dev:watch": "ts-node --transpile-only --files --watch voidbridge.ts",
     "voidbridge": "ts-node voidbridge.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
   },
   "keywords": [
     "meshtastic",
@@ -34,5 +37,10 @@
     "serialport": "^13.0.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.0"
   }
 }

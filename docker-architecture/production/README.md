@@ -162,7 +162,7 @@ USB_DEVICE=/dev/ttyUSB0
 
 ```dockerfile
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -180,7 +180,7 @@ COPY config/ ./config/
 RUN npm run build || echo "No build step defined"
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:22-alpine AS production
 
 # Install production system dependencies
 RUN apk add --no-cache \

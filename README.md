@@ -35,10 +35,10 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 
 ## Requirements
 
-- Node.js (v18 or higher)
+- Node.js (v22 LTS or higher)
 - Meshtastic device connected via USB
 - Docker & Docker Compose (for development)
-- TypeScript (for development)
+- TypeScript 5.8+ (for development)
 
 ## Installation
 

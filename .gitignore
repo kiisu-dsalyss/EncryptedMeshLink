@@ -9,6 +9,11 @@ encryptedmeshlink-config.json
 # TypeScript build artifacts
 dist/
 *.tsbuildinfo
+*.js
+*.js.map
+
+# Exclude specific JavaScript files we want to keep
+!jest.config.js
 
 # Experimental and old files (keep clean project structure)
 bidirectional.ts

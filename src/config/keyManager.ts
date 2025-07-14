@@ -67,12 +67,12 @@ export class KeyManager {
       
       const encrypted = publicEncrypt({
         key: publicKey,
-        padding: 1 // RSA_PKCS1_PADDING
+        padding: 4 // RSA_PKCS1_OAEP_PADDING
       }, testMessage);
       
       const decrypted = privateDecrypt({
         key: privateKey,
-        padding: 1 // RSA_PKCS1_PADDING
+        padding: 4 // RSA_PKCS1_OAEP_PADDING
       }, encrypted);
 
       return decrypted.toString('utf8') === 'test-message';
@@ -127,7 +127,7 @@ export class KeyManager {
         const testData = Buffer.from('test', 'utf8');
         publicEncrypt({
           key: key,
-          padding: 1
+          padding: 4 // RSA_PKCS1_OAEP_PADDING
         }, testData);
         return true;
       } else {

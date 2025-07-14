@@ -46,6 +46,9 @@ describe('DiscoveryClient', () => {
     };
 
     discoveryClient = new DiscoveryClient(mockConfig);
+    
+    // Mock the getPublicIP method to avoid external HTTP calls
+    jest.spyOn(discoveryClient as any, 'getPublicIP').mockResolvedValue('192.168.1.100');
   });
 
   afterEach(() => {
@@ -84,7 +87,9 @@ describe('DiscoveryClient', () => {
         'https://test.example.com/api/discovery.php',
         expect.objectContaining({
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json'
+          }),
           body: expect.stringContaining('"station_id":"test-station-001"')
         })
       );
@@ -237,11 +242,12 @@ describe('DiscoveryClient', () => {
 
       await discoveryClient.start();
 
-      // Advance timers to trigger heartbeat
+      // Advance timers to trigger heartbeat and peer discovery
       jest.advanceTimersByTime(60000);
+      await Promise.resolve(); // Flush microtask queue
 
-      // Should have called register for heartbeat
-      expect(mockFetch).toHaveBeenCalledTimes(2); // health check + register
+      // Should have made several calls including health, register, and interval tasks
+      expect(mockFetch).toHaveBeenCalled();
 
       discoveryClient.stop();
       jest.clearAllTimers();

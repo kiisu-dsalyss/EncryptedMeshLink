@@ -49,6 +49,19 @@ export class DiscoveryClient {
   private knownPeers: Map<string, DiscoveredPeer> = new Map();
 
   constructor(config: StationConfig) {
+    // Validate required configuration
+    if (!config.discovery?.serviceUrl) {
+      throw new Error('Discovery service URL is required');
+    }
+    
+    if (!config.stationId) {
+      throw new Error('Station ID is required');
+    }
+    
+    if (!config.keys?.publicKey) {
+      throw new Error('Public key is required');
+    }
+    
     this.config = config;
   }
 
@@ -111,41 +124,49 @@ export class DiscoveryClient {
   /**
    * Register this station with the discovery service
    */
-  async register(): Promise<void> {
-    const contactInfo: ContactInfo = {
-      ip: await this.getPublicIP(),
-      port: this.config.p2p.listenPort,
-      publicKey: this.config.keys.publicKey,
-      lastSeen: Date.now()
-    };
+  async register(): Promise<boolean> {
+    try {
+      const contactInfo: ContactInfo = {
+        ip: await this.getPublicIP(),
+        port: this.config.p2p.listenPort,
+        publicKey: this.config.keys.publicKey,
+        lastSeen: Date.now()
+      };
 
-    const encryptedContactInfo = await this.encryptContactInfo(contactInfo);
-    
-    const payload = {
-      station_id: this.config.stationId,
-      encrypted_contact_info: encryptedContactInfo,
-      public_key: this.config.keys.publicKey
-    };
+      const encryptedContactInfo = await this.encryptContactInfo(contactInfo);
+      
+      const payload = {
+        station_id: this.config.stationId,
+        encrypted_contact_info: encryptedContactInfo,
+        public_key: this.config.keys.publicKey
+      };
 
-    const response = await this.makeRequest('POST', '', payload);
-    
-    if (response.success) {
-      this.isRegistered = true;
-      console.log(`📝 Station registered successfully`);
-    } else {
-      throw new Error(`Registration failed: ${response.error}`);
+      const response = await this.makeRequest('POST', '', payload);
+      
+      if (response.success) {
+        this.isRegistered = true;
+        console.log(`📝 Station registered successfully`);
+        return true;
+      } else {
+        console.error(`Registration failed: ${response.error}`);
+        return false;
+      }
+    } catch (error) {
+      console.error(`Registration error:`, error);
+      return false;
     }
   }
 
   /**
    * Unregister this station from the discovery service
    */
-  async unregister(): Promise<void> {
+  async unregister(): Promise<boolean> {
     const response = await this.makeRequest('DELETE', `?station_id=${this.config.stationId}`);
     
     if (response.success) {
       this.isRegistered = false;
       console.log(`📤 Station unregistered successfully`);
+      return true;
     } else {
       throw new Error(`Unregistration failed: ${response.error}`);
     }
@@ -155,21 +176,27 @@ export class DiscoveryClient {
    * Discover active peers from the discovery service
    */
   async discoverPeers(): Promise<DiscoveredPeer[]> {
-    const response = await this.makeRequest('GET', '?peers=true');
-    
-    if (!response.success) {
-      throw new Error(`Peer discovery failed: ${response.error}`);
-    }
+    try {
+      const response = await this.makeRequest('GET', '?peers=true');
+      
+      if (!response.success) {
+        console.error(`Peer discovery failed: ${response.error}`);
+        return [];
+      }
 
-    const peers: DiscoveredPeer[] = response.data.peers || [];
-    
-    // Filter out ourselves
-    const remotePeers = peers.filter(peer => peer.stationId !== this.config.stationId);
-    
-    // Process peer changes
-    this.processPeerChanges(remotePeers);
-    
-    return remotePeers;
+      const peers: DiscoveredPeer[] = response.data.peers || [];
+      
+      // Filter out ourselves
+      const remotePeers = peers.filter(peer => peer.stationId !== this.config.stationId);
+      
+      // Process peer changes
+      this.processPeerChanges(remotePeers);
+      
+      return remotePeers;
+    } catch (error) {
+      console.error(`Peer discovery error:`, error);
+      return [];
+    }
   }
 
   /**
@@ -302,7 +329,7 @@ export class DiscoveryClient {
       }
       
       return data;
-    } catch (error) {
+    } catch (error: any) {
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${this.config.discovery.timeout}s`);
       }

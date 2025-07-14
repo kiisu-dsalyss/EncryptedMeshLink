@@ -9,7 +9,7 @@ dist/
 # Experimental and old files (keep clean project structure)
 bidirectional.ts
 diagnose.ts
-echoBot.ts
+echo-bot.js
 index*.ts
 meshtastic_official.ts
 messageHandler*.ts

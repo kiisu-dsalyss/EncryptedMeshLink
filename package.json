@@ -1,26 +1,28 @@
 {
-  "name": "meshtastic-echo-bot",
+  "name": "voidbridge",
   "version": "1.0.0",
-  "description": "A Meshtastic echo bot built with Node.js and the official JavaScript library",
-  "main": "echo-bot.js",
+  "description": "VoidBridge - Internet bridge system for Meshtastic mesh networks with encrypted P2P discovery",
+  "main": "voidbridge.js",
   "scripts": {
     "build": "tsc",
-    "start": "node echo-bot.js",
-    "dev": "ts-node echo-bot.ts",
-    "dev:watch": "ts-node --watch echo-bot.ts",
-    "echo-bot": "ts-node echo-bot.ts",
+    "start": "node voidbridge.js",
+    "dev": "ts-node voidbridge.ts",
+    "dev:watch": "ts-node --watch voidbridge.ts",
+    "voidbridge": "ts-node voidbridge.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "meshtastic",
     "mesh",
     "radio",
-    "echo",
-    "bot",
-    "lora"
+    "bridge",
+    "internet",
+    "p2p",
+    "lora",
+    "void"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@meshtastic/core": "npm:@jsr/meshtastic__core@^2.6.4",
     "@meshtastic/protobufs": "npm:@jsr/meshtastic__protobufs@^2.7.0",

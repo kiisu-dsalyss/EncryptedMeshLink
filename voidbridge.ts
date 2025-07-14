@@ -18,11 +18,12 @@ async function main() {
     let relayHandler: RelayHandler;
 
     console.log("🚀 Connected to device, setting up event listeners...");
+    console.log("🌉 Initializing VoidBridge station...");
 
     // Set up all event listeners BEFORE configuring
     device.events.onMyNodeInfo.subscribe((nodeInfo) => {
       myNodeNum = nodeInfo.myNodeNum;
-      console.log(`📱 My node number: ${myNodeNum}`);
+      console.log(`📱 Station node number: ${myNodeNum}`);
       
       // Initialize relay handler now that we have node info
       relayHandler = new RelayHandler(device, knownNodes, myNodeNum);
@@ -94,7 +95,7 @@ async function main() {
 
     // Give some time for initial configuration
     setTimeout(() => {
-      console.log("🎯 Echo bot is ready! Send a message to test!");
+      console.log("� VoidBridge station ready! Send a message to test bridging!");
     }, 2000);
 
     // Send a heartbeat every 30 seconds to keep connection alive
@@ -113,19 +114,19 @@ async function main() {
     }, 30000);
 
     // Keep the program running
-    console.log("🎯 Echo bot is running. Send a message to test!");
+    console.log("� VoidBridge station is running. Send a message to test bridging!");
 
   } catch (error) {
     // Handle different types of errors gracefully
     if (error && typeof error === 'object' && 'error' in error) {
-      console.log(`⚠️ PKI/Config timeout error (${error.error}), but bot functionality should work. Restarting...`);
+      console.log(`⚠️ PKI/Config timeout error (${error.error}), but VoidBridge functionality should work. Restarting...`);
       // Don't exit, just log and let the process restart
       setTimeout(() => {
-        console.log("🔄 Attempting to restart bot...");
+        console.log("🔄 Attempting to restart VoidBridge...");
         main().catch(console.error);
       }, 3000);
     } else {
-      console.error("❌ Critical error starting echo bot:", error);
+      console.error("❌ Critical error starting VoidBridge:", error);
       process.exit(1);
     }
   }
@@ -133,7 +134,7 @@ async function main() {
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
-  console.log("\n👋 Shutting down echo bot...");
+  console.log("\n👋 Shutting down VoidBridge...");
   process.exit(0);
 });
 

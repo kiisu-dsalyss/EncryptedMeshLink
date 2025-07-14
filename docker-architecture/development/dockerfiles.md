@@ -57,14 +57,14 @@ COPY config/ ./config/
 RUN mkdir -p keys data logs config
 
 # Create non-root user
-RUN addgroup -g 1001 -S voidbridge && \
-    adduser -S voidbridge -u 1001 -G voidbridge
+RUN addgroup -g 1001 -S encryptedmeshlink && \
+    adduser -S encryptedmeshlink -u 1001 -G encryptedmeshlink
 
 # Set ownership
-RUN chown -R voidbridge:voidbridge /app
+RUN chown -R encryptedmeshlink:encryptedmeshlink /app
 
 # Switch to non-root user
-USER voidbridge
+USER encryptedmeshlink
 
 # Health check script
 COPY healthcheck.js ./
@@ -162,16 +162,16 @@ CMD ["npm", "run", "dev-dashboard"]
 
 ```bash
 # Build discovery service
-docker build -f docker-architecture/development/Dockerfile.discovery -t voidbridge/discovery:dev .
+docker build -f docker-architecture/development/Dockerfile.discovery -t encryptedmeshlink/discovery:dev .
 
 # Build station image
-docker build -f docker-architecture/development/Dockerfile.station -t voidbridge/station:dev .
+docker build -f docker-architecture/development/Dockerfile.station -t encryptedmeshlink/station:dev .
 
 # Build simulator
-docker build -f docker-architecture/development/Dockerfile.simulator -t voidbridge/simulator:dev .
+docker build -f docker-architecture/development/Dockerfile.simulator -t encryptedmeshlink/simulator:dev .
 
 # Build development tools
-docker build -f docker-architecture/development/Dockerfile.dev-tools -t voidbridge/dev-tools:dev .
+docker build -f docker-architecture/development/Dockerfile.dev-tools -t encryptedmeshlink/dev-tools:dev .
 ```
 
 ### Build Script
@@ -185,22 +185,22 @@ echo "Building development Docker images..."
 
 # Build discovery service
 echo "Building discovery service..."
-docker build -f docker-architecture/development/Dockerfile.discovery -t voidbridge/discovery:dev . || exit 1
+docker build -f docker-architecture/development/Dockerfile.discovery -t encryptedmeshlink/discovery:dev . || exit 1
 
 # Build station image
 echo "Building station image..."
-docker build -f docker-architecture/development/Dockerfile.station -t voidbridge/station:dev . || exit 1
+docker build -f docker-architecture/development/Dockerfile.station -t encryptedmeshlink/station:dev . || exit 1
 
 # Build simulator
 echo "Building simulator..."
-docker build -f docker-architecture/development/Dockerfile.simulator -t voidbridge/simulator:dev . || exit 1
+docker build -f docker-architecture/development/Dockerfile.simulator -t encryptedmeshlink/simulator:dev . || exit 1
 
 # Build development tools
 echo "Building development tools..."
-docker build -f docker-architecture/development/Dockerfile.dev-tools -t voidbridge/dev-tools:dev . || exit 1
+docker build -f docker-architecture/development/Dockerfile.dev-tools -t encryptedmeshlink/dev-tools:dev . || exit 1
 
 echo "All images built successfully!"
-docker images | grep voidbridge
+docker images | grep encryptedmeshlink
 ```
 
 ## Security Considerations
@@ -209,7 +209,7 @@ docker images | grep voidbridge
 
 All containers run as non-root users for security:
 
-- `voidbridge` user (UID 1001) for station containers
+- `encryptedmeshlink` user (UID 1001) for station containers
 - `simulator` user (UID 1001) for simulator
 - `devtools` user (UID 1001) for development tools
 - Apache runs as `www-data` in discovery service

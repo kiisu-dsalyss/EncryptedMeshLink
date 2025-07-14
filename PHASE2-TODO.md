@@ -6,14 +6,14 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 ## Architecture Summary
 - **Discovery**: PHP service on Dreamhost for encrypted peer discovery
 - **Messages**: Direct P2P encrypted communication between stations
-- **Security**: AES encrypted contact invoidbridge config validate
-voidbridge config generate-keys
-voidbridge config show
+- **Security**: AES encrypted contact in encryptedmeshlink config validate
+encryptedmeshlink config generate-keys
+encryptedmeshlink config show
 
 # Diagnostic commands
-voidbridge diagnostic network
-voidbridge diagnostic crypto
-voidbridge diagnostic discovery encrypted messages
+encryptedmeshlink diagnostic network
+encryptedmeshlink diagnostic crypto
+encryptedmeshlink diagnostic discovery encrypted messages
 - **Queue**: Local SQLite for offline message storage
 
 ---

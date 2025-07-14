@@ -1,7 +1,7 @@
 import { NodeManager } from '../src/nodeManager';
 import { MessageParser } from '../src/messageParser';
 
-describe('VoidBridge Integration', () => {
+describe('EncryptedMeshLink Integration', () => {
   beforeEach(() => {
     // Mock console methods to avoid spam during tests
     jest.spyOn(console, 'log').mockImplementation();

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Basic monitoring and logging for Raspberry Pi deployments of VoidBridge stations. Keeping it simple and lightweight!
+Basic monitoring and logging for Raspberry Pi deployments of EncryptedMeshLink stations. Keeping it simple and lightweight!
 
 ## Monitoring Approach
 

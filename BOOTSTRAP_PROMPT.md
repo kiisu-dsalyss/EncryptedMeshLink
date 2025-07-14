@@ -1,20 +1,20 @@
-# VoidBridge Project Bootstrap Prompt
+# EncryptedMeshLink Project Bootstrap Prompt
 
-Copy and paste this prompt when opening the VoidBridge project in a new VS Code session to get GitHub Copilot up to speed instantly.
+Copy and paste this prompt when opening the EncryptedMeshLink project in a new VS Code session to get GitHub Copilot up to speed instantly.
 
 ---
 
 ## Project Context Prompt
 
 ```
-You are working on VoidBridge, a sophisticated internet bridge system for Meshtastic mesh networks. This project enables distant Meshtastic stations to communicate via encrypted P2P connections over the internet.
+You are working on EncryptedMeshLink, a sophisticated internet bridge system for Meshtastic mesh networks. This project enables distant Meshtastic stations to communicate via encrypted P2P connections over the internet.
 
 ## Current Project Status
 
 ### Phase 1 (COMPLETED ✅)
 - **Working modular echo/relay system** with TypeScript
 - **Clean architecture** with separate modules:
-  - `voidbridge.ts` - Main application entry point
+  - `encryptedmeshlink.ts` - Main application entry point
   - `src/transport.ts` - Meshtastic USB device communication
   - `src/relayHandler.ts` - Message processing with @{identifier} routing
   - `src/nodeManager.ts` - Node tracking and name resolution  
@@ -34,7 +34,7 @@ You are working on VoidBridge, a sophisticated internet bridge system for Meshta
 ## Project Architecture
 
 ### Core Files
-- `voidbridge.ts` - Main application with device detection and initialization
+- `encryptedmeshlink.ts` - Main application with device detection and initialization
 - `package.json` - Dependencies: @meshtastic/core, @meshtastic/protobufs, serialport
 - `findPort.ts` - USB device auto-detection with manufacturer scoring
 - `PHASE2-TODO.md` - Complete roadmap with Jira-style tickets (MIB-001 through MIB-016)
@@ -67,7 +67,7 @@ docker-architecture/
 ## Usage Commands
 ```bash
 npm run dev:watch     # Development with auto-restart
-npm run voidbridge    # Single run
+npm run encryptedmeshlink    # Single run
 npm run dev          # TypeScript development mode
 ```
 
@@ -101,7 +101,7 @@ Use this context to help with development, debugging, architecture decisions, an
 ```bash
 # Development
 npm run dev:watch          # Auto-restart development
-npm run voidbridge         # Single run
+npm run encryptedmeshlink         # Single run
 
 # Docker (when implemented)
 docker-compose -f docker-architecture/development/docker-compose.dev.yml up -d

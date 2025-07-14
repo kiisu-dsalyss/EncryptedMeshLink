@@ -1,4 +1,4 @@
-# VoidBridge
+# EncryptedMeshLink
 
 A powerful internet bridge system for Meshtastic mesh networks with encrypted P2P discovery and message relay capabilities.
 
@@ -13,8 +13,9 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 - 🔧 **Robust Error Handling** - Graceful PKI timeout management and auto-recovery
 - 🏗️ **Modular Architecture** - Clean TypeScript implementation with separation of concerns
 
-### 🚧 Phase 2 Features (PLANNED - NOT YET FUNCTIONAL)
+### 🚧 Phase 2 Features (MIB-002 READY)
 
+- ✅ **Station Configuration** - JSON config with RSA keys and validation *(MIB-002 Complete)*
 - 🌉 **Internet Bridge** - Connects distant Meshtastic networks via internet *(Phase 2)*
 - 🔐 **Encrypted P2P** - RSA + AES encrypted communication between stations *(Phase 2)*
 - 🔍 **Auto-discovery** - Encrypted peer discovery via PHP service *(Phase 2)*
@@ -47,7 +48,7 @@ npm install
 npm run dev:watch
 
 # Single run for testing
-npm run voidbridge
+npm run encryptedmeshlink
 ```
 
 ### Production Usage (Phase 2 - Not Yet Available)
@@ -62,6 +63,26 @@ docker-compose -f docker-architecture/development/docker-compose.dev.yml up -d
 ./docker-architecture/production/deploy.sh pi@your-pi.local station-id-001
 ```
 
+### Configuration Management (Phase 2)
+
+```bash
+# Initialize new station configuration
+npm run encryptedmeshlink -- config init --station-id=my-station-001 --display-name="My Station" --location="City, State" --operator="N0CALL"
+
+# Show current configuration
+npm run encryptedmeshlink -- config show
+
+# Validate configuration
+npm run encryptedmeshlink -- config validate
+
+# Regenerate RSA keys
+npm run encryptedmeshlink -- config regen-keys
+
+# Update configuration values
+npm run encryptedmeshlink -- config set displayName "New Station Name"
+npm run encryptedmeshlink -- config set discovery.serviceUrl "https://custom.discovery.com/api"
+```
+
 ### Direct Usage (Current)
 
 ```bash
@@ -72,7 +93,7 @@ npm run dev
 npm run dev:watch
 
 # Single execution
-npm run voidbridge
+npm run encryptedmeshlink
 ```
 
 ### Build for Production (Phase 1 Ready)
@@ -102,21 +123,30 @@ npm start
 
 🚀 **Internet bridging features** (see `PHASE2-TODO.md` for full roadmap):
 
-- Encrypted peer discovery service
-- Direct P2P communication between distant stations  
-- Station configuration system with key management
-- Docker deployment for Raspberry Pi
-- Simple monitoring and health checks
+- ✅ **MIB-002 Station Configuration System** - JSON config, RSA key management, CLI commands
+- 🚧 **MIB-003 Discovery Service Client** - Encrypted peer discovery and registration
+- 🚧 **MIB-004 P2P Communication Module** - Direct encrypted communication between stations
+- 🚧 **MIB-005 Cryptography Module** - AES encryption and secure message handling
+- 🚧 **MIB-006 Message Bridge Handler** - Route messages between mesh and internet
+- 🚧 **MIB-007 Docker Deployment** - Container setup for Raspberry Pi deployment
 
 ## Project Structure
 
 ```text
-├── voidbridge.ts        # ✅ Main VoidBridge application  
+├── encryptedmeshlink.ts # ✅ Main EncryptedMeshLink application  
 ├── src/                 # ✅ Core application modules (WORKING)
 │   ├── transport.ts     # ✅ Meshtastic device communication
 │   ├── relayHandler.ts  # ✅ Message relay and processing
 │   ├── nodeManager.ts   # ✅ Node tracking and management
-│   └── messageParser.ts # ✅ Command parsing and routing
+│   ├── messageParser.ts # ✅ Command parsing and routing
+│   ├── configCLI.ts     # ✅ Configuration CLI commands
+│   └── config/          # ✅ Station configuration system (MIB-002)
+│       ├── types.ts     # ✅ TypeScript interfaces and types
+│       ├── manager.ts   # ✅ Configuration file management
+│       ├── validator.ts # ✅ Configuration validation
+│       ├── keyManager.ts # ✅ RSA key generation and management
+│       ├── env.ts       # ✅ Environment variable management
+│       └── index.ts     # ✅ Module exports
 ├── findPort.ts          # ✅ USB device detection and scoring
 ├── package.json         # ✅ Dependencies and scripts
 ├── tsconfig.json        # ✅ TypeScript configuration
@@ -136,7 +166,9 @@ npm start
 - `@meshtastic/core` - Official Meshtastic JavaScript core library
 - `@meshtastic/protobufs` - Official Meshtastic protocol definitions
 - `serialport` - Node.js serial port communication
-- `typescript` + `ts-node` - TypeScript support
+- `typescript` + `tsx` - TypeScript support and modern development
+- `dotenv` - Environment variable management for configuration
+- `jest` - Testing framework with 109 comprehensive tests
 
 ## Example Output
 
@@ -144,7 +176,7 @@ npm start
 🔍 Looking for Meshtastic device...
 ✅ Auto-selected: /dev/tty.usbmodem21101
 🚀 Connected to device, setting up event listeners...
-🌉 VoidBridge station initialized: mobile-van-001
+🌉 EncryptedMeshLink station initialized: mobile-van-001
 🔐 Generated RSA keypair for secure communications
 🌐 Connecting to discovery service...
 📡 Station ready for mesh-to-internet bridging!

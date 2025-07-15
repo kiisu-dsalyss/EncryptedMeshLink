@@ -6,6 +6,9 @@ package-lock.json
 .env
 encryptedmeshlink-config.json
 
+# Bootstrap and development setup files
+BOOTSTRAP_PROMPT.md
+
 # TypeScript build artifacts
 dist/
 *.tsbuildinfo

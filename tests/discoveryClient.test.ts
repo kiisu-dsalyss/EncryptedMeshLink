@@ -259,17 +259,22 @@ describe('DiscoveryClient', () => {
     let testDiscoveryClient: DiscoveryClient;
     
     beforeEach(() => {
+      // Clear all mocks before each test
+      jest.clearAllMocks();
+      
       // Create a fresh discovery client for error handling tests
       testDiscoveryClient = new DiscoveryClient(mockConfig);
       jest.spyOn(testDiscoveryClient as any, 'getPublicIP').mockResolvedValue('192.168.1.100');
     });
     
     it('should handle malformed JSON responses', async () => {
-      // Set up the mock to fail JSON parsing for the registration call
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => { throw new Error('Invalid JSON'); }
-      } as unknown as Response);
+      // Mock the specific fetch call for this test
+      mockFetch.mockImplementation(() => 
+        Promise.resolve({
+          ok: true,
+          json: async () => { throw new Error('Invalid JSON'); }
+        } as unknown as Response)
+      );
 
       const result = await testDiscoveryClient.register();
 
@@ -280,7 +285,8 @@ describe('DiscoveryClient', () => {
       const mockAbortError = new Error('The operation was aborted');
       mockAbortError.name = 'AbortError';
       
-      mockFetch.mockRejectedValueOnce(mockAbortError);
+      // Mock the fetch to reject with abort error
+      mockFetch.mockImplementation(() => Promise.reject(mockAbortError));
 
       const result = await testDiscoveryClient.register();
 

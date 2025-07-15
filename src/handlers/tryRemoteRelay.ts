@@ -4,7 +4,7 @@
  */
 
 import { DiscoveryClient, DiscoveredPeer } from '../discoveryClient';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 import { parseTargetIdentifier } from '../common/parsers';
 
 export interface RemoteNodeInfo {

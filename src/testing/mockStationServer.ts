@@ -15,7 +15,7 @@ import { StationConfig } from '../config/types';
 import { KeyManager } from '../config/keyManager';
 import { BridgeClient, createP2PBridgeClient } from '../bridge/client';
 import { NodeRegistryManager } from '../nodeRegistry/manager';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 
 // Configuration for a realistic remote station
 const MOCK_STATION_CONFIG = {

@@ -5,7 +5,7 @@
 
 import { BridgeTransport, createBridgeTransport, createP2PBridgeTransport, BridgeTransportStats } from './transport';
 import { P2PTransport, P2PTransportStats } from '../p2p/transport';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 import { DiscoveryClient } from '../discoveryClient';
 import { 
   BridgeMessage, 

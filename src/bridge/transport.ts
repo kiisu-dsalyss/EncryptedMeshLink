@@ -9,7 +9,7 @@
 
 import { BridgeMessage, ErrorResponse, AckMessage, serializeBridgeMessage, deserializeBridgeMessage, createErrorResponse, ErrorCode } from './protocol';
 import { P2PTransport, P2PTransportConfig } from '../p2p/transport';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 import { DiscoveryClient } from '../discoveryClient';
 
 export interface BridgeTransportConfig {

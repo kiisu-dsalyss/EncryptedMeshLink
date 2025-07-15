@@ -1,23 +1,5 @@
 /**
- * Pimport { import { 
-  PeerInfo, 
-  P2PConnectionConfig, 
-  P2PConnectionStats, 
-  P2PMessage, 
-  P2PConnection, 
-  P2PConnectionStatus,
-  P2PConnectionManagerEvents,
-  ConnectionAttemptStrategy
-} from './types';
-import { CryptoService } from '../crypto';, 
-  P2PConnectionConfig, 
-  P2PConnectionStats, 
-  P2PMessage, 
-  P2PConnection, 
-  P2PConnectionStatus,
-  P2PConnectionManagerEvents,
-  ConnectionAttemptStrategy
-} from './types';ion Manager - MIB-010
+ * P2P Connection Manager - MIB-010
  * Manages direct peer-to-peer connections between stations
  */
 
@@ -34,7 +16,7 @@ import {
   P2PConnectionManagerEvents,
   ConnectionAttemptStrategy
 } from './types';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 
 interface ActiveConnection extends P2PConnection {
   socket: net.Socket | WebSocket;

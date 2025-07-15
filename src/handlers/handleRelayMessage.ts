@@ -5,7 +5,7 @@
 
 import type { MeshDevice } from "@meshtastic/core";
 import { DiscoveryClient } from '../discoveryClient';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 import { tryLocalRelay, NodeInfo } from './tryLocalRelay';
 import { tryRemoteRelay, RemoteNodeInfo } from './tryRemoteRelay';
 

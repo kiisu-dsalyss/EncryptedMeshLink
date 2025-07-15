@@ -7,7 +7,7 @@ import { StationConfig } from '../config/types';
 import { ContactInfo } from './types';
 import { makeRequest } from './request';
 import { getPublicIP } from './ipDetection';
-import { encryptContactInfo } from './crypto';
+import { encryptContactInfo } from '../crypto/contactInfo';
 
 export async function registerStation(config: StationConfig): Promise<boolean> {
   try {

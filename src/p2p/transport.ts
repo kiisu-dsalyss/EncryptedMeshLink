@@ -7,7 +7,7 @@ import { EventEmitter } from 'events';
 import { P2PConnectionManager } from './connectionManager';
 import { P2PConnectionConfig, PeerInfo, P2PMessage, P2PConnectionStats } from './types';
 import { BridgeMessage, serializeBridgeMessage, deserializeBridgeMessage, createBridgeMessage, MessageType, MessagePriority } from '../bridge/protocol';
-import { CryptoService } from '../crypto';
+import { CryptoService } from '../crypto/index';
 import { DiscoveryClient } from '../discoveryClient';
 
 export interface P2PTransportConfig {

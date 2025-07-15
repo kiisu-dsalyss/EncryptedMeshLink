@@ -52,32 +52,27 @@ export async function enqueueMessage(
         id, from_node, to_node, message, target_station, priority, ttl,
         created_at, scheduled_for, attempts, max_attempts, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+    `);      stmt.run(
+        messageId,
+        fromNode,
+        toNode,
+        message,
+        options.targetStation || null,
+        queuedMessage.priority,
+        queuedMessage.ttl,
+        now,
+        scheduledFor,
+        0,
+        queuedMessage.maxAttempts,
+        MessageStatus.PENDING
+      );
 
-    stmt.run(
-      messageId,
-      fromNode,
-      toNode,
-      message,
-      options.targetStation || null,
-      queuedMessage.priority,
-      queuedMessage.ttl,
-      now,
-      scheduledFor,
-      0,
-      queuedMessage.maxAttempts,
-      MessageStatus.PENDING
-    );
-
-    console.log(`📥 Queued message ${messageId} from ${fromNode} to ${toNode}${options.targetStation ? ` via ${options.targetStation}` : ''}`);
-    return messageId;
-  } catch (error: any) {
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-      console.log(`⚠️ Duplicate message detected, skipping`);
-      return 'duplicate';
+      return messageId;    } catch (error: any) {
+      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        return 'duplicate';
+      }
+      throw error;
     }
-    throw error;
-  }
 }
 
 function getQueueSize(db: Database.Database): number {

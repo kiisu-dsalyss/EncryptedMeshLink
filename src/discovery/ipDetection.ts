@@ -28,18 +28,16 @@ export async function getPublicIP(): Promise<string> {
         const ip = data.ip || data.origin || data.query;
         if (ip && isValidIP(ip)) {
           return ip;
+        }        } catch (error) {
+          // Failed to get IP from this service, try next
+          continue;
         }
-      } catch (error) {
-        console.warn(`⚠️ Failed to get IP from ${service}:`, error);
-        continue;
-      }
     }
     
-    throw new Error('All IP detection services failed');
-  } catch (error) {
-    console.warn(`⚠️ Could not determine public IP, using localhost`);
-    return '127.0.0.1';
-  }
+    throw new Error('All IP detection services failed');    } catch (error) {
+      // All services failed, use localhost as fallback
+      return '127.0.0.1';
+    }
 }
 
 export function isValidIP(ip: string): boolean {

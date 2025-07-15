@@ -223,10 +223,18 @@ export class DiscoveryClient {
    * Decrypt contact info from a discovered peer
    */
   async decryptContactInfo(encryptedData: string): Promise<ContactInfo> {
-    // TODO: Implement AES decryption when MIB-003 (Cryptography) is complete
-    // For now, return a placeholder
-    const decoded = JSON.parse(Buffer.from(encryptedData, 'base64').toString());
-    return decoded;
+    // Use proper AES decryption via the crypto module
+    const { cryptoService } = await import('./cryptoModular');
+    const discoveryKey = this.config.keys.privateKey;
+    const decrypted = await cryptoService.decryptContactInfo(encryptedData, discoveryKey);
+    
+    // Convert crypto ContactInfo back to discovery ContactInfo format
+    return {
+      ip: decrypted.ipAddress || '',
+      port: decrypted.port || 0,
+      publicKey: decrypted.publicKey,
+      lastSeen: decrypted.lastSeen
+    };
   }
 
   /**
@@ -252,10 +260,18 @@ export class DiscoveryClient {
   // Private methods
 
   private async encryptContactInfo(contactInfo: ContactInfo): Promise<string> {
-    // TODO: Implement AES encryption when MIB-003 (Cryptography) is complete
-    // For now, just base64 encode the JSON
-    const json = JSON.stringify(contactInfo);
-    return Buffer.from(json).toString('base64');
+    // Convert discovery ContactInfo to crypto ContactInfo format
+    const cryptoContactInfo = {
+      stationId: this.config.stationId,
+      ipAddress: contactInfo.ip,
+      port: contactInfo.port,
+      publicKey: contactInfo.publicKey,
+      lastSeen: contactInfo.lastSeen
+    };
+    
+    const { cryptoService } = await import('./cryptoModular');
+    const discoveryKey = this.config.keys.privateKey;
+    return cryptoService.encryptContactInfo(cryptoContactInfo, discoveryKey);
   }
 
   private async getPublicIP(): Promise<string> {
@@ -322,13 +338,22 @@ export class DiscoveryClient {
 
     try {
       const response = await fetch(url, options);
-      const data = await response.json() as any;
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${data.error || response.statusText}`);
+      try {
+        const data = await response.json() as any;
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${data.error || response.statusText}`);
+        }
+        
+        return data as DiscoveryResponse;
+      } catch (jsonError) {
+        // Handle JSON parsing errors
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        throw new Error(`Invalid JSON response from discovery service`);
       }
-      
-      return data as DiscoveryResponse;
     } catch (error: any) {
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${this.config.discovery.timeout}s`);

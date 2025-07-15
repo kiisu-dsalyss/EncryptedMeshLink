@@ -29,15 +29,12 @@ export async function registerStation(config: StationConfig): Promise<boolean> {
     const response = await makeRequest(config, 'POST', '', payload);
     
     if (response.success) {
-      console.log(`📝 Station registered successfully`);
       return true;
     } else {
-      console.error(`Registration failed: ${response.error}`);
-      return false;
+      throw new Error(`Registration failed: ${response.error}`);
     }
   } catch (error) {
-    console.error(`Registration error:`, error);
-    return false;
+    throw new Error(`Registration error: ${error}`);
   }
 }
 
@@ -45,7 +42,6 @@ export async function unregisterStation(config: StationConfig): Promise<boolean>
   const response = await makeRequest(config, 'DELETE', `?station_id=${config.stationId}`);
   
   if (response.success) {
-    console.log(`📤 Station unregistered successfully`);
     return true;
   } else {
     throw new Error(`Unregistration failed: ${response.error}`);

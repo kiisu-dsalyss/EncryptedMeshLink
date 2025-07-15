@@ -12,8 +12,7 @@ export async function discoverPeers(config: StationConfig): Promise<DiscoveredPe
     const response = await makeRequest(config, 'GET', '?peers=true');
     
     if (!response.success) {
-      console.error(`Peer discovery failed: ${response.error}`);
-      return [];
+      throw new Error(`Peer discovery failed: ${response.error}`);
     }
 
     const peers: DiscoveredPeer[] = response.data.peers || [];
@@ -23,8 +22,7 @@ export async function discoverPeers(config: StationConfig): Promise<DiscoveredPe
     
     return remotePeers;
   } catch (error) {
-    console.error(`Peer discovery error:`, error);
-    return [];
+    throw new Error(`Peer discovery error: ${error}`);
   }
 }
 
@@ -55,13 +53,11 @@ export function processPeerChanges(
 
   // Notify about new peers
   for (const peer of newPeers) {
-    console.log(`🆕 New peer discovered: ${peer.stationId}`);
     onPeerDiscovered?.(peer);
   }
 
   // Notify about lost peers
   for (const lostId of lostPeerIds) {
-    console.log(`📤 Peer lost: ${lostId}`);
     onPeerLost?.(lostId);
   }
 }

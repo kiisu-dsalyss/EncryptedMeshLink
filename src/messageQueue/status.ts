@@ -26,7 +26,6 @@ export function markDelivered(db: Database.Database, messageId: string): boolean
   `);
 
   const result = stmt.run(MessageStatus.DELIVERED, messageId);
-  console.log(`✅ Message ${messageId} delivered successfully`);
   return result.changes > 0;
 }
 
@@ -45,7 +44,6 @@ export function markFailed(db: Database.Database, config: Required<MessageQueueC
     `);
     
     stmt.run(MessageStatus.FAILED, error, messageId);
-    console.log(`❌ Message ${messageId} failed permanently after ${newAttempts} attempts`);
     return false;
   } else {
     // Reschedule with exponential backoff
@@ -63,7 +61,6 @@ export function markFailed(db: Database.Database, config: Required<MessageQueueC
     `);
     
     stmt.run(MessageStatus.PENDING, newScheduledFor, error, messageId);
-    console.log(`🔄 Message ${messageId} rescheduled (attempt ${newAttempts}/${message.maxAttempts}) in ${backoffDelay}ms`);
     return true;
   }
 }

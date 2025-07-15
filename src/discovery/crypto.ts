@@ -7,15 +7,30 @@ import { StationConfig } from '../config/types';
 import { ContactInfo } from './types';
 
 export async function encryptContactInfo(contactInfo: ContactInfo, config: StationConfig): Promise<string> {
-  // TODO: Implement AES encryption when MIB-003 (Cryptography) is complete
-  // For now, just base64 encode the JSON
-  const json = JSON.stringify(contactInfo);
-  return Buffer.from(json).toString('base64');
+  // Convert discovery ContactInfo to crypto ContactInfo format
+  const cryptoContactInfo = {
+    stationId: config.stationId,
+    ipAddress: contactInfo.ip,
+    port: contactInfo.port,
+    publicKey: contactInfo.publicKey,
+    lastSeen: contactInfo.lastSeen
+  };
+  
+  const { cryptoService } = await import('../cryptoModular');
+  const discoveryKey = config.keys.privateKey; // Use actual discovery key
+  return cryptoService.encryptContactInfo(cryptoContactInfo, discoveryKey);
 }
 
 export async function decryptContactInfo(encryptedData: string, config: StationConfig): Promise<ContactInfo> {
-  // TODO: Implement AES decryption when MIB-003 (Cryptography) is complete
-  // For now, return a placeholder
-  const decoded = JSON.parse(Buffer.from(encryptedData, 'base64').toString());
-  return decoded;
+  const { cryptoService } = await import('../cryptoModular');
+  const discoveryKey = config.keys.privateKey; // Use actual discovery key
+  const decrypted = await cryptoService.decryptContactInfo(encryptedData, discoveryKey);
+  
+  // Convert crypto ContactInfo back to discovery ContactInfo format
+  return {
+    ip: decrypted.ipAddress || '',
+    port: decrypted.port || 0,
+    publicKey: decrypted.publicKey,
+    lastSeen: decrypted.lastSeen
+  };
 }

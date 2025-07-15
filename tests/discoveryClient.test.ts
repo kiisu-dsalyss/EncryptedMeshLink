@@ -256,13 +256,22 @@ describe('DiscoveryClient', () => {
   });
 
   describe('error handling', () => {
+    let testDiscoveryClient: DiscoveryClient;
+    
+    beforeEach(() => {
+      // Create a fresh discovery client for error handling tests
+      testDiscoveryClient = new DiscoveryClient(mockConfig);
+      jest.spyOn(testDiscoveryClient as any, 'getPublicIP').mockResolvedValue('192.168.1.100');
+    });
+    
     it('should handle malformed JSON responses', async () => {
+      // Set up the mock to fail JSON parsing for the registration call
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => { throw new Error('Invalid JSON'); }
       } as unknown as Response);
 
-      const result = await discoveryClient.register();
+      const result = await testDiscoveryClient.register();
 
       expect(result).toBe(false);
     });
@@ -273,7 +282,7 @@ describe('DiscoveryClient', () => {
       
       mockFetch.mockRejectedValueOnce(mockAbortError);
 
-      const result = await discoveryClient.register();
+      const result = await testDiscoveryClient.register();
 
       expect(result).toBe(false);
     });

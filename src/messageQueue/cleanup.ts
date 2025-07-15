@@ -39,9 +39,5 @@ export function cleanupMessages(db: Database.Database): number {
   const deleteExpiredResult = deleteExpiredStmt.run(MessageStatus.EXPIRED, now - (24 * 60 * 60 * 1000));
   deletedCount += deleteExpiredResult.changes;
 
-  if (deletedCount > 0) {
-    console.log(`🧹 Cleaned up ${deletedCount} messages from queue`);
-  }
-
   return deletedCount;
 }

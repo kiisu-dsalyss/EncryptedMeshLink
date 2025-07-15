@@ -611,18 +611,21 @@ describe('NodeRegistryManager', () => {
       );
     });
 
-    test('should emit sync events', () => {
+    test('should emit sync events', async () => {
       const syncHandler = jest.fn();
       manager.on('sync_completed', syncHandler);
 
-      // Start the manager to trigger sync
+      // Register a local node to have something to sync
+      manager.registerLocalNode('test-node-1', { type: 'worker' });
+      
+      // Start the manager to trigger periodic sync
       manager.start();
 
-      // Allow time for sync to execute
-      setTimeout(() => {
-        expect(syncHandler).toHaveBeenCalled();
-        manager.stop();
-      }, 100);
+      // Manually trigger a sync to test the event
+      await (manager as any).performSync();
+      
+      expect(syncHandler).toHaveBeenCalled();
+      manager.stop();
     });
   });
 });

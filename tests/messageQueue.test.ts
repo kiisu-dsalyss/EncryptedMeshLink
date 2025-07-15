@@ -4,16 +4,11 @@ import fs from 'fs';
 
 describe('MessageQueue', () => {
   let messageQueue: MessageQueue;
-  const testDbPath = path.join(__dirname, 'test_message_queue.db');
 
   beforeEach(async () => {
-    // Clean up any existing test database
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
-
+    // Use memory-based database for complete isolation
     messageQueue = new MessageQueue({
-      dbPath: testDbPath,
+      dbPath: ':memory:',
       maxQueueSize: 100,
       defaultTTL: 60, // 1 minute for tests
       maxAttempts: 3,
@@ -23,7 +18,7 @@ describe('MessageQueue', () => {
     });
 
     // Wait a moment for initialization
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   afterEach(async () => {
@@ -32,20 +27,8 @@ describe('MessageQueue', () => {
       messageQueue.shutdown();
     }
     
-    // Add small delay to ensure shutdown completes
-    await new Promise(resolve => setTimeout(resolve, 10));
-    
-    // Clean up test database
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
-  });
-
-  afterAll(async () => {
-    // Final cleanup - ensure all test databases are removed
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
+    // Add longer delay to ensure shutdown completes
+    await new Promise(resolve => setTimeout(resolve, 100));
   });
 
   describe('Basic Operations', () => {

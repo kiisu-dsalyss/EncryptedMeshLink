@@ -8,6 +8,7 @@ import { P2PTransportConfig } from '../src/p2p/transport';
 import { CryptoService } from '../src/crypto';
 import { DiscoveryClient } from '../src/discoveryClient';
 import { createBridgeMessage, MessageType, MessagePriority } from '../src/bridge/protocol';
+import { findAvailablePort } from './testUtils';
 
 // Mock dependencies
 jest.mock('../src/crypto');
@@ -17,16 +18,17 @@ describe('P2PTransport', () => {
   let transport: P2PTransport;
   let mockCrypto: jest.Mocked<CryptoService>;
   let mockDiscoveryClient: jest.Mocked<DiscoveryClient>;
-  
-  const testConfig: P2PTransportConfig = {
-    stationId: 'test-station',
-    localPort: 8083,
-    connectionTimeout: 5000,
-    retryAttempts: 2,
-    retryDelay: 500
-  };
+  let testConfig: P2PTransportConfig;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const availablePort = await findAvailablePort();
+    testConfig = {
+      stationId: 'test-station',
+      localPort: availablePort,
+      connectionTimeout: 5000,
+      retryAttempts: 2,
+      retryDelay: 500
+    };
     mockCrypto = new CryptoService({} as any) as jest.Mocked<CryptoService>;
     mockDiscoveryClient = new DiscoveryClient({} as any) as jest.Mocked<DiscoveryClient>;
     

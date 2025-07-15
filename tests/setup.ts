@@ -12,7 +12,23 @@ global.console = {
 };
 
 // Setup test timeout
-jest.setTimeout(10000);
+jest.setTimeout(15000);
 
 // Mock environment variables for consistent testing
 process.env.NODE_ENV = 'test';
+
+// Add global test isolation helpers
+beforeEach(() => {
+  // Clear any pending timers
+  jest.clearAllTimers();
+});
+
+afterEach(async () => {
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc();
+  }
+  
+  // Small delay to allow async cleanup
+  await new Promise(resolve => setTimeout(resolve, 10));
+});

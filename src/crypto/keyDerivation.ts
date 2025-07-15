@@ -36,3 +36,9 @@ export async function deriveDiscoveryKey(
 export function generateRandomKey(length: number = 32): string {
   return randomBytes(length).toString('hex');
 }
+
+export function generateMessageId(): string {
+  const timestamp = Date.now().toString(36); // Base 36 timestamp
+  const random = randomBytes(8).toString('hex'); // 16 hex chars
+  return `${timestamp}-${random}`;
+}

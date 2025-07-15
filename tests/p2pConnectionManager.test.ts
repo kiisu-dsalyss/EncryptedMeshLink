@@ -6,6 +6,7 @@
 import { P2PConnectionManager } from '../src/p2p/connectionManager';
 import { P2PConnectionConfig, PeerInfo } from '../src/p2p/types';
 import { CryptoService } from '../src/crypto';
+import { findAvailablePort } from './testUtils';
 
 // Mock the crypto service for testing
 jest.mock('../src/crypto');
@@ -13,6 +14,7 @@ jest.mock('../src/crypto');
 describe('P2PConnectionManager', () => {
   let connectionManager: P2PConnectionManager;
   let mockCrypto: jest.Mocked<CryptoService>;
+  let testPeer: PeerInfo;
   
   const testConfig: P2PConnectionConfig = {
     localPort: 0, // Use port 0 to let the system assign a free port
@@ -25,7 +27,16 @@ describe('P2PConnectionManager', () => {
     retryDelay: 1000
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const availablePort = await findAvailablePort();
+    testPeer = {
+      stationId: 'test-station',
+      host: '127.0.0.1',
+      port: availablePort,
+      publicKey: 'test-public-key',
+      lastSeen: Date.now(),
+      connectionType: 'tcp'
+    };
     mockCrypto = new CryptoService({} as any) as jest.Mocked<CryptoService>;
     connectionManager = new P2PConnectionManager(testConfig, mockCrypto);
   });
@@ -89,15 +100,6 @@ describe('P2PConnectionManager', () => {
   });
 
   describe('Connection attempts', () => {
-    const testPeer: PeerInfo = {
-      stationId: 'test-station',
-      host: '127.0.0.1',
-      port: 8082,
-      publicKey: 'test-public-key',
-      lastSeen: Date.now(),
-      connectionType: 'tcp'
-    };
-
     it('should handle connection failure gracefully', async () => {
       // Try to connect to non-existent peer
       await expect(connectionManager.connectToPeer(testPeer)).rejects.toThrow();

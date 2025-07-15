@@ -5,6 +5,7 @@
 
 import { CryptoService, ContactInfo } from '../src/crypto';
 import { KeyManager } from '../src/config/keyManager';
+import { findAvailablePort } from './testUtils';
 
 describe('CryptoService', () => {
   let cryptoService: CryptoService;
@@ -14,10 +15,11 @@ describe('CryptoService', () => {
   beforeAll(async () => {
     cryptoService = new CryptoService();
     testKeyPair = await KeyManager.generateKeyPair();
+    const availablePort = await findAvailablePort();
     testContactInfo = {
       stationId: 'test-station-001',
       ipAddress: '192.168.1.100',
-      port: 8080,
+      port: availablePort,
       publicKey: testKeyPair.publicKey,
       lastSeen: Date.now(),
       capabilities: ['relay', 'bridge']

@@ -86,6 +86,9 @@ async function main() {
           case 'nodes':
             await relayHandler.handleListNodesRequest(packet);
             break;
+          case 'instructions':
+            await relayHandler.handleInstructionsRequest(packet);
+            break;
           case 'echo':
             await relayHandler.handleEchoMessage(packet);
             break;
@@ -270,7 +273,7 @@ async function handleCLICommands() {
       console.log('  ✅ Local message relay via @{identifier}');
       console.log('  ✅ USB auto-detection for Meshtastic devices');
       console.log('  ✅ Node management and human-readable names');
-      console.log('  ✅ Command processing (@instructions, @nodes, @echo)');
+      console.log('  ✅ Command processing (instructions, nodes, status, @messages)');
       console.log('\nPhase 2 Features (MIB-002 Configuration Ready):');
       console.log('  🚧 Station configuration system');
       console.log('  🚧 RSA key management');

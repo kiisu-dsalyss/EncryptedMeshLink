@@ -170,7 +170,7 @@ npm start
 1. **Message Relay**: Send `@base hello from mobile` to route messages to the "base" station
 2. **Node Discovery**: Shows `[From 1234567890 (StationName)]` with human-readable names  
 3. **Enhanced Commands**: Send `"status"` for bridge info, `"nodes"` to see actual node names
-4. **Help System**: Send `@instructions` to get available commands
+4. **Help System**: Send `instructions` to get available commands
 5. **Echo Test**: Send `@echo test message` to verify the system is working
 6. **Discovery Service Ready**: PHP service ready for deployment to your hosting
 7. **Node Registry**: Cross-station node tracking with 32 tests passing

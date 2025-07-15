@@ -203,6 +203,8 @@ export class EnhancedRelayHandler {
    * Handle list nodes request - shows all local and remote nodes
    */
   async handleListNodesRequest(packet: any): Promise<void> {
+    console.log(`📋 Processing 'nodes' command from ${packet.from}`);
+    
     let response = `📋 Available Nodes:\n\n`;
     
     // Local nodes
@@ -239,7 +241,7 @@ export class EnhancedRelayHandler {
           nodes.forEach(node => {
             const metadata = node.metadata as any;
             const name = metadata?.longName || metadata?.shortName || `Node ${node.nodeId}`;
-            const shortName = metadata?.shortName ? ` (${metadata.shortName})` : '';
+            const shortName = metadata?.shortName && metadata?.longName ? ` (${metadata.shortName})` : '';
             response += `  • ${name}${shortName} - ID: ${node.nodeId}\n`;
           });
         });
@@ -252,7 +254,78 @@ export class EnhancedRelayHandler {
     
     response += `\n💬 Use "@{name}" or "@{id}" to send messages`;
     
-    await this.sendTextMessage(packet.from, response);
+    console.log(`📤 Sending nodes response (${response.length} chars) to ${packet.from}`);
+    console.log(`📋 Response content:\n${response}`);
+    
+    // Always send compact format with actual node names (Meshtastic limit ~200 chars)
+    let compactResponse = `📋 Nodes:\n`;
+    
+    // Local nodes - show actual names (prefer long names over emoji short names)
+    const localNodes: string[] = [];
+    this.knownNodes.forEach((nodeInfo, nodeId) => {
+      // Always prefer longName over shortName to avoid emoji-only display
+      const longName = nodeInfo.user?.longName;
+      const shortName = nodeInfo.user?.shortName;
+      
+      // Use longName if it exists and is different from shortName (to avoid emoji-only names)
+      let name;
+      if (longName && longName !== shortName) {
+        name = longName;
+      } else if (longName) {
+        name = longName;
+      } else if (shortName) {
+        name = shortName;
+      } else {
+        name = `${nodeId}`;
+      }
+      
+      localNodes.push(name);
+    });
+    
+    if (localNodes.length > 0) {
+      compactResponse += `🏠 ${localNodes.join(', ')}\n`;
+    } else {
+      compactResponse += `🏠 (none)\n`;
+    }
+    
+    // Remote nodes - show actual names (prefer long names)
+    if (this.nodeRegistry) {
+      const allRemoteNodes = this.nodeRegistry.getNodesByStation()
+        .filter(node => node.stationId !== this.config.stationId);
+      
+      if (allRemoteNodes.length > 0) {
+        const remoteNames: string[] = [];
+        allRemoteNodes.forEach(node => {
+          const metadata = node.metadata as any;
+          const longName = metadata?.longName;
+          const shortName = metadata?.shortName;
+          
+          // Use longName if it exists and is different from shortName (to avoid emoji-only names)
+          let name;
+          if (longName && longName !== shortName) {
+            name = longName;
+          } else if (longName) {
+            name = longName;
+          } else if (shortName) {
+            name = shortName;
+          } else {
+            name = `${node.nodeId}`;
+          }
+          
+          remoteNames.push(name);
+        });
+        compactResponse += `🌍 ${remoteNames.join(', ')}\n`;
+      } else {
+        compactResponse += `🌍 (none)\n`;
+      }
+    } else {
+      compactResponse += `🌍 (registry n/a)\n`;
+    }
+    
+    compactResponse += `💬 @{name} to message`;
+    
+    console.log(`📤 Sending compact response (${compactResponse.length} chars): ${compactResponse}`);
+    await this.sendTextMessage(packet.from, compactResponse);
   }
 
   /**
@@ -263,6 +336,26 @@ export class EnhancedRelayHandler {
     const bridgeStatus = this.discoveryClient ? " 🌉" : "";
     const response = `🔊 Echo from ${senderName}${bridgeStatus}: "${packet.data}"`;
     
+    await this.sendTextMessage(packet.from, response);
+  }
+
+  /**
+   * Handle instructions request - shows available commands
+   */
+  async handleInstructionsRequest(packet: any): Promise<void> {
+    console.log(`📖 Processing 'instructions' command from ${packet.from}`);
+    
+    const response = `📖 Commands:
+• nodes - list available nodes
+• status - bridge/relay info
+• @{name} {msg} - send message
+• instructions - this help
+
+Examples:
+• @alice hello there
+• @1234567890 test message`;
+    
+    console.log(`📤 Sending instructions to ${packet.from}`);
     await this.sendTextMessage(packet.from, response);
   }
 
@@ -348,9 +441,12 @@ export class EnhancedRelayHandler {
 
   private async sendTextMessage(targetNodeId: number, message: string): Promise<void> {
     try {
+      console.log(`📡 Attempting to send message to node ${targetNodeId}: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
       await this.device.sendText(message, targetNodeId);
+      console.log(`✅ Message sent successfully to node ${targetNodeId}`);
     } catch (error) {
       console.error(`❌ Failed to send message to ${targetNodeId}:`, error);
+      console.error(`❌ Message that failed: "${message}"`);
     }
   }
 

@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --production=false
+RUN npm install
 
 # Copy source code
 COPY . .

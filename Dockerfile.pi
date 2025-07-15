@@ -13,7 +13,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies with memory limits
-RUN npm ci --production=false --max-old-space-size=512
+RUN npm install --max-old-space-size=512
 
 # Copy source code
 COPY . .

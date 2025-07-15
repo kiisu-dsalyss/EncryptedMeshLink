@@ -465,6 +465,9 @@ describe('NodeRegistryManager', () => {
       expect(result).toBeDefined();
       expect(result?.nodeId).toBe('remote-node');
       expect(result?.stationId).toBe('remote-station');
+      
+      // Wait a bit to ensure the async broadcastSystemMessage has been called
+      await new Promise(resolve => setTimeout(resolve, 50));
       expect(mockBridge.broadcastSystemMessage).toHaveBeenCalled();
     });
 

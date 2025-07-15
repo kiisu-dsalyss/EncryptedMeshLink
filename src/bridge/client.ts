@@ -330,30 +330,17 @@ export class BridgeClient extends EventEmitter {
   }
 
   /**
-   * Start polling for messages
+   * Start bridge client - discovery only, no message polling
    */
   private startPolling(): void {
-    this.pollingTimer = setInterval(async () => {
-      try {
-        const messages = await this.transport.pollMessages();
-        
-        if (messages.length > 0) {
-          console.log(`🌉 Received ${messages.length} bridge messages`);
-          
-          // Filter out expired messages
-          const validMessages = messages.filter(msg => !isMessageExpired(msg));
-          
-          if (validMessages.length !== messages.length) {
-            console.warn(`🌉 Filtered out ${messages.length - validMessages.length} expired messages`);
-          }
-          
-          await this.transport.processMessages(validMessages);
-        }
-      } catch (error) {
-        console.error('Error polling for messages:', error);
-        this.emit('error', error as Error);
-      }
-    }, this.config.pollingInterval);
+    // IMPORTANT: Discovery service is ONLY for peer discovery, NOT message relay!
+    // Messages should go P2P directly between stations, not through discovery service.
+    
+    console.log('🌉 Bridge client started - using discovery for peer finding only');
+    console.log('📡 P2P direct messaging will be implemented in MIB-010');
+    
+    // The discovery service is ONLY used by the discovery client to find peers
+    // This bridge client will be used for direct P2P communication once implemented
   }
 
   /**

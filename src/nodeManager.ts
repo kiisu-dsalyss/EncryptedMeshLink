@@ -44,8 +44,8 @@ export class NodeManager {
     console.log("   Send \"nodes\" to get this list");
     console.log("   Send \"@{nodeId} {message}\" to relay by ID");
     console.log("   Send \"@{nodeName} {message}\" to relay by name");
-    console.log("   Example: \"@3616546689 Hello there!\"");
-    console.log("   Example: \"@fester Hello there!\"");
+    console.log("   Example: \"@1111111111 Hello there!\"");
+    console.log("   Example: \"@demo Hello there!\"");
     console.log("===================\n");
   }
 }

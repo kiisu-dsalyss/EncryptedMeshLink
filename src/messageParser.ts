@@ -1,5 +1,5 @@
 export interface ParsedMessage {
-  type: 'relay' | 'nodes' | 'echo';
+  type: 'relay' | 'nodes' | 'status' | 'echo';
   targetIdentifier?: string;
   message?: string;
 }
@@ -17,8 +17,15 @@ export class MessageParser {
       };
     }
     
-    // Check if it's a nodes request
-    if (messageData.toLowerCase() === 'nodes') {
+    // Check if it's a status request (formerly "nodes")
+    if (messageData.toLowerCase() === 'status') {
+      return {
+        type: 'status'
+      };
+    }
+    
+    // Check if it's a list nodes request
+    if (messageData.toLowerCase() === 'nodes' || messageData.toLowerCase() === 'list nodes') {
       return {
         type: 'nodes'
       };

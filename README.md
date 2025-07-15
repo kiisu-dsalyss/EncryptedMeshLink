@@ -9,7 +9,7 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 - 📡 **Local Mesh Relay** - Routes messages within mesh using `@{identifier}` format
 - 🔍 **USB Auto-Detection** - Finds and connects to Meshtastic devices automatically  
 - 👥 **Node Management** - Tracks and resolves node names for human-readable messaging
-- 💬 **Command Processing** - Handles `@instructions`, `@nodes`, and `@echo` commands
+- 💬 **Enhanced Commands** - `"status"` shows bridge info, `"nodes"` lists actual node names like "Fester"
 - 🔧 **Robust Error Handling** - Graceful PKI timeout management and auto-recovery
 - 🏗️ **Modular Architecture** - Clean TypeScript implementation with separation of concerns
 
@@ -18,11 +18,12 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 - ✅ **Station Configuration** - JSON config with RSA keys and validation *(MIB-002 Complete)*
 - ✅ **Discovery Service** - PHP service ready for deployment to your hosting *(MIB-001 Complete)*
 - ✅ **Discovery Client** - TypeScript client for service communication *(MIB-004 Complete)*
-- ✅ **Enhanced Relay Handler** - Internet bridging with enhanced message routing *(MIB-005 Complete)*
+- ✅ **Enhanced Relay Handler** - Internet bridging with Node Registry integration *(MIB-005 Complete)*
+- ✅ **Node Registry Bridge** - Cross-station node tracking and visibility *(MIB-009 Complete)*
 - ✅ **Encrypted P2P** - RSA + AES encrypted communication between stations *(MIB-003 Complete)*
 - ✅ **Security First** - Zero-knowledge discovery server, end-to-end encryption *(Ready for deployment)*
-- ✅ **Code Quality** - 168 tests passing, production-ready modular architecture
-- 🚧 **Message Queue** - SQLite persistence for offline delivery *(MIB-006 Planned)*
+- ✅ **Code Quality** - 220 tests passing, production-ready modular architecture
+- 🚧 **Message Relay** - Direct P2P messaging system *(MIB-010 Planned)*
 - � **Docker Ready** - Containerization for development and deployment *(Planned)*
 - � **Basic Monitoring** - Simple logging and health checks for Pi deployment *(Planned)*
 
@@ -33,6 +34,8 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 - **Rate Limiting**: 30 requests/minute per IP with automatic cleanup
 - **Database**: SQLite with WAL mode, indexed for performance
 - **Hosting**: Compatible with shared hosting (PHP 7.4+, SQLite3)
+
+**Note**: The discovery service is for peer discovery only. Direct P2P message relay system is planned for MIB-010.
 
 ## API Reference
 
@@ -166,16 +169,18 @@ npm start
 
 1. **Message Relay**: Send `@base hello from mobile` to route messages to the "base" station
 2. **Node Discovery**: Shows `[From 1234567890 (StationName)]` with human-readable names  
-3. **Help System**: Send `@instructions` to get available commands
-4. **Node List**: Send `@nodes` to see all discovered stations
+3. **Enhanced Commands**: Send `"status"` for bridge info, `"nodes"` to see actual node names like "Fester"
+4. **Help System**: Send `@instructions` to get available commands
 5. **Echo Test**: Send `@echo test message` to verify the system is working
 6. **Discovery Service Ready**: PHP service ready for deployment to your hosting
-7. **Internet Bridge Ready**: Enhanced relay handler with discovery client integration
+7. **Node Registry**: Cross-station node tracking with 32 tests passing
 8. **Heartbeat System**: Automatic station registration and peer discovery
 
 🔧 **Current limitations:**
 
-- Message queue system planned for offline delivery (MIB-006)
+- Direct P2P message relay planned for MIB-010 (discovery service is for peer discovery only)
+- Docker deployment configuration pending
+- ✅ Bridge architecture properly separated (discovery ≠ message relay)
 - Docker deployment configuration pending
 - Bridge message protocol documentation pending (MIB-008)
 
@@ -187,9 +192,10 @@ npm start
 - ✅ **MIB-002 Station Configuration System** - JSON config, RSA key management, CLI commands
 - ✅ **MIB-003 Cryptography Module** - AES + RSA encryption and secure message handling
 - ✅ **MIB-004 Discovery Client** - TypeScript client for peer discovery and registration
-- ✅ **MIB-005 Enhanced Relay Handler** - Internet bridge routing with discovery integration
-- ✅ **Code Quality & Testing** - 168 tests passing, production-ready modular architecture
-- 🚧 **MIB-006 Message Queue System** - SQLite message persistence for offline delivery
+- ✅ **MIB-005 Enhanced Relay Handler** - Internet bridge routing with Node Registry integration
+- ✅ **MIB-009 Node Registry Bridge** - Cross-station node tracking with 32 tests passing
+- ✅ **Code Quality & Testing** - 220 tests passing, production-ready modular architecture
+- 🚧 **MIB-010 Direct Messaging System** - P2P message relay between stations
 - 🚧 **MIB-007 Docker Deployment** - Container setup for Raspberry Pi deployment
 - 🚧 **MIB-008 Bridge Message Protocol** - Complete protocol specification and documentation
 

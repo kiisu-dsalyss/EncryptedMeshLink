@@ -8,6 +8,8 @@
 import type { MeshDevice } from "@meshtastic/core";
 import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
 import { StationConfig } from './config/types';
+import { NodeRegistryManager } from './nodeRegistry/manager';
+import { BridgeClient } from './bridge/client';
 
 export interface NodeInfo {
   num: number;
@@ -30,6 +32,8 @@ export class EnhancedRelayHandler {
   private knownNodes: Map<number, NodeInfo>;
   private remoteNodes: Map<number, RemoteNodeInfo> = new Map();
   private discoveryClient?: DiscoveryClient;
+  private nodeRegistry?: NodeRegistryManager;
+  private bridgeClient?: BridgeClient;
   private myNodeNum?: number;
   private config: StationConfig;
 
@@ -54,6 +58,27 @@ export class EnhancedRelayHandler {
     try {
       this.discoveryClient = new DiscoveryClient(this.config);
       
+      // Initialize Bridge Client
+      this.bridgeClient = new BridgeClient({
+        discoveryServiceUrl: this.config.discovery.serviceUrl,
+        stationId: this.config.stationId,
+        pollingInterval: 30000,
+        autoStart: false
+      });
+      
+      // Initialize Node Registry
+      this.nodeRegistry = new NodeRegistryManager(
+        this.config.stationId,
+        this.bridgeClient,
+        {
+          syncIntervalMs: 30000,
+          nodeTtlSeconds: 300,
+          maxNodesPerStation: 100,
+          cleanupIntervalMs: 60000,
+          conflictResolutionStrategy: 'latest'
+        }
+      );
+      
       // Set up discovery event handlers
       this.discoveryClient.setEventHandlers({
         onPeerDiscovered: this.handlePeerDiscovered.bind(this),
@@ -61,8 +86,13 @@ export class EnhancedRelayHandler {
         onError: this.handleDiscoveryError.bind(this)
       });
       
-      // Start discovery client
+      // Start services
       await this.discoveryClient.start();
+      this.bridgeClient.start();
+      this.nodeRegistry.start();
+      
+      // Register local nodes with the registry
+      await this.registerLocalNodes();
       
       console.log("✅ Bridge services initialized successfully");
     } catch (error) {
@@ -77,6 +107,16 @@ export class EnhancedRelayHandler {
   async stopBridge(): Promise<void> {
     console.log("🛑 Stopping bridge services...");
     
+    if (this.nodeRegistry) {
+      this.nodeRegistry.stop();
+      this.nodeRegistry = undefined;
+    }
+    
+    if (this.bridgeClient) {
+      this.bridgeClient.stop();
+      this.bridgeClient = undefined;
+    }
+    
     if (this.discoveryClient) {
       await this.discoveryClient.stop();
       this.discoveryClient = undefined;
@@ -84,6 +124,25 @@ export class EnhancedRelayHandler {
     
     this.remoteNodes.clear();
     console.log("✅ Bridge services stopped");
+  }
+
+  /**
+   * Register local nodes with the node registry
+   */
+  async registerLocalNodes(): Promise<void> {
+    if (!this.nodeRegistry) return;
+    
+    this.knownNodes.forEach((nodeInfo, nodeId) => {
+      const metadata = {
+        longName: nodeInfo.user?.longName,
+        shortName: nodeInfo.user?.shortName,
+        lastSeen: nodeInfo.lastSeen.toISOString(),
+        position: nodeInfo.position
+      };
+      
+      this.nodeRegistry!.registerLocalNode(nodeId.toString(), metadata);
+      console.log(`📋 Registered local node: ${nodeInfo.user?.longName || nodeInfo.user?.shortName || nodeId} (${nodeId})`);
+    });
   }
 
   /**
@@ -109,9 +168,9 @@ export class EnhancedRelayHandler {
   }
 
   /**
-   * Handle nodes request with bridge information
+   * Handle status request with bridge information
    */
-  async handleNodesRequest(packet: any): Promise<void> {
+  async handleStatusRequest(packet: any): Promise<void> {
     const localCount = this.knownNodes.size;
     const remoteCount = this.remoteNodes.size;
     const bridgeStatus = this.discoveryClient ? "🌉 BRIDGE ACTIVE" : "🔌 BRIDGE OFFLINE";
@@ -135,6 +194,63 @@ export class EnhancedRelayHandler {
     }
     
     response += `\n💬 Use "@{identifier} message" for relay`;
+    response += `\n📋 Use "nodes" to list all available nodes`;
+    
+    await this.sendTextMessage(packet.from, response);
+  }
+
+  /**
+   * Handle list nodes request - shows all local and remote nodes
+   */
+  async handleListNodesRequest(packet: any): Promise<void> {
+    let response = `📋 Available Nodes:\n\n`;
+    
+    // Local nodes
+    response += `🏠 Local Nodes (${this.knownNodes.size}):\n`;
+    if (this.knownNodes.size > 0) {
+      this.knownNodes.forEach((nodeInfo, nodeId) => {
+        const name = nodeInfo.user?.longName || nodeInfo.user?.shortName || `Node ${nodeId}`;
+        const shortName = nodeInfo.user?.shortName ? ` (${nodeInfo.user.shortName})` : '';
+        response += `  • ${name}${shortName} - ID: ${nodeId}\n`;
+      });
+    } else {
+      response += `  (No local nodes detected)\n`;
+    }
+    
+    // Remote nodes from registry
+    if (this.nodeRegistry) {
+      const allRemoteNodes = this.nodeRegistry.getNodesByStation()
+        .filter(node => node.stationId !== this.config.stationId);
+      
+      if (allRemoteNodes.length > 0) {
+        response += `\n🌍 Remote Nodes (${allRemoteNodes.length}):\n`;
+        
+        // Group by station
+        const nodesByStation = new Map<string, typeof allRemoteNodes>();
+        allRemoteNodes.forEach(node => {
+          if (!nodesByStation.has(node.stationId)) {
+            nodesByStation.set(node.stationId, []);
+          }
+          nodesByStation.get(node.stationId)!.push(node);
+        });
+        
+        nodesByStation.forEach((nodes, stationId) => {
+          response += `\n📍 Station: ${stationId}\n`;
+          nodes.forEach(node => {
+            const metadata = node.metadata as any;
+            const name = metadata?.longName || metadata?.shortName || `Node ${node.nodeId}`;
+            const shortName = metadata?.shortName ? ` (${metadata.shortName})` : '';
+            response += `  • ${name}${shortName} - ID: ${node.nodeId}\n`;
+          });
+        });
+      } else {
+        response += `\n🌍 Remote Nodes: (None discovered)\n`;
+      }
+    } else {
+      response += `\n🌍 Remote Nodes: (Registry not available)\n`;
+    }
+    
+    response += `\n💬 Use "@{name}" or "@{id}" to send messages`;
     
     await this.sendTextMessage(packet.from, response);
   }

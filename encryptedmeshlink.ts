@@ -40,6 +40,9 @@ async function main() {
       try {
         await relayHandler.initializeBridge();
         console.log("🌉 Internet bridge services started successfully");
+        
+        // Register any existing local nodes with the registry
+        await relayHandler.registerLocalNodes();
       } catch (bridgeError) {
         console.warn("⚠️ Bridge initialization failed, running in local-only mode:", bridgeError);
         // Continue without bridge - local functionality still works
@@ -77,8 +80,11 @@ async function main() {
               await relayHandler.handleRelayMessage(packet, parsedMessage.targetIdentifier, parsedMessage.message);
             }
             break;
+          case 'status':
+            await relayHandler.handleStatusRequest(packet);
+            break;
           case 'nodes':
-            await relayHandler.handleNodesRequest(packet);
+            await relayHandler.handleListNodesRequest(packet);
             break;
           case 'echo':
             await relayHandler.handleEchoMessage(packet);

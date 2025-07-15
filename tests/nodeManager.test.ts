@@ -220,8 +220,8 @@ describe('NodeManager', () => {
       expect(console.log).toHaveBeenCalledWith('   Send "nodes" to get this list');
       expect(console.log).toHaveBeenCalledWith('   Send "@{nodeId} {message}" to relay by ID');
       expect(console.log).toHaveBeenCalledWith('   Send "@{nodeName} {message}" to relay by name');
-      expect(console.log).toHaveBeenCalledWith('   Example: "@3616546689 Hello there!"');
-      expect(console.log).toHaveBeenCalledWith('   Example: "@fester Hello there!"');
+      expect(console.log).toHaveBeenCalledWith('   Example: "@1111111111 Hello there!"');
+      expect(console.log).toHaveBeenCalledWith('   Example: "@demo Hello there!"');
       expect(console.log).toHaveBeenCalledWith('===================\n');
     });
 

@@ -10,9 +10,10 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 - ✅ Bridge integration with modular architecture  
 - ✅ Message queue system complete with SQLite persistence
 - ✅ Bridge message protocol complete with full specification
-- ✅ Node registry bridge complete with cross-station tracking
+- ✅ Node registry bridge complete with cross-station tracking and integrated command system
 - ✅ All 220 tests passing across comprehensive test suite
 - ✅ Production-ready code quality achieved
+- ✅ Enhanced command structure: "status" shows bridge info, "nodes" lists actual node names
 - 🎯 Next: Direct messaging system for peer-to-peer communication (MIB-010)
 
 ## Current Status Update (2025-01-14)
@@ -23,11 +24,11 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 - **MIB-002**: Station Configuration System - ✅ COMPLETE
 - **MIB-003**: Cryptography Module - ✅ COMPLETE
 - **MIB-004**: Discovery Client - ✅ COMPLETE
-- **MIB-005**: Enhanced Relay Handler - ✅ COMPLETE
+- **MIB-005**: Enhanced Relay Handler - ✅ COMPLETE (with Node Registry integration)
 - **MIB-006**: Message Queue System - ✅ COMPLETE (SQLite persistence with offline delivery)
 - **MIB-007**: Bridge Integration (Modular) - ✅ COMPLETE (follows one-function-per-file architecture)
 - **MIB-008**: Bridge Message Protocol - ✅ COMPLETE (full specification with transport layer)
-- **MIB-009**: Node Registry Bridge - ✅ COMPLETE (cross-station node tracking with 32 tests)
+- **MIB-009**: Node Registry Bridge - ✅ COMPLETE (cross-station node tracking integrated with relay handler)
 - **CODE QUALITY**: Production-ready codebase - ✅ COMPLETE (220 tests passing, modular architecture)
 
 🚧 **IN PROGRESS:**
@@ -271,7 +272,15 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 - ✅ Retry logic with exponential backoff
 - ✅ Support for all message types (user, command, system, protocol)
 
-**Current Status**: Ready for integration with enhanced relay handler and discovery service.
+**Current Status**: ✅ COMPLETE - Node Registry integrated with Enhanced Relay Handler
+
+**Integration Features**: 
+- ✅ Command structure updated: "status" shows relay/bridge status, "nodes" lists actual node names
+- ✅ Local nodes automatically registered with Node Registry on bridge initialization  
+- ✅ Cross-station node visibility via `handleListNodesRequest()` method
+- ✅ Real node names (like "Fester") displayed in node listing commands
+- ✅ Bridge status separated from node listing for better UX
+- ✅ All 220 tests passing including Node Registry integration
 
 ---
 

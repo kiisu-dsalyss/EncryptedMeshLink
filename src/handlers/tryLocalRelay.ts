@@ -4,6 +4,7 @@
  */
 
 import type { MeshDevice } from "@meshtastic/core";
+import { parseTargetIdentifier } from '../common/parsers';
 
 export interface NodeInfo {
   num: number;
@@ -35,8 +36,9 @@ export async function tryLocalRelay(
   let targetNode: NodeInfo | undefined;
   
   // Search by node number (if targetIdentifier is numeric)
-  const targetNum = parseInt(targetIdentifier);
-  if (!isNaN(targetNum)) {
+  const targetInfo = parseTargetIdentifier(targetIdentifier);
+  if (targetInfo.isNumeric) {
+    const targetNum = targetInfo.value as number;
     targetNode = knownNodes.get(targetNum);
   } else {
     // Search by name

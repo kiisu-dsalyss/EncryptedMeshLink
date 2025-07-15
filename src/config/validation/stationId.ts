@@ -4,6 +4,8 @@
  */
 
 import { ConfigValidationError } from './types';
+import { VALIDATION_PATTERNS, VALIDATION_RANGES } from '../../common/constants';
+import { validateStringLength } from '../../common/validation';
 
 export function validateStationId(stationId: any): ConfigValidationError[] {
   const errors: ConfigValidationError[] = [];
@@ -13,14 +15,20 @@ export function validateStationId(stationId: any): ConfigValidationError[] {
     return errors;
   }
 
-  if (typeof stationId !== 'string') {
-    errors.push({ field: 'stationId', message: 'Station ID must be a string' });
+  const lengthValidation = validateStringLength(
+    stationId, 
+    VALIDATION_RANGES.STATION_ID_LENGTH.min, 
+    VALIDATION_RANGES.STATION_ID_LENGTH.max, 
+    'Station ID'
+  );
+  
+  if (!lengthValidation.isValid) {
+    errors.push({ field: 'stationId', message: lengthValidation.error! });
     return errors;
   }
 
   // Station ID format: 3-20 characters, alphanumeric + dash
-  const stationIdRegex = /^[a-zA-Z0-9-]{3,20}$/;
-  if (!stationIdRegex.test(stationId)) {
+  if (!VALIDATION_PATTERNS.STATION_ID.test(stationId)) {
     errors.push({
       field: 'stationId',
       message: 'Station ID must be 3-20 characters, alphanumeric and dash only'

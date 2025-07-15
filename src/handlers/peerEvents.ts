@@ -4,6 +4,7 @@
  */
 
 import { DiscoveredPeer } from '../discoveryClient';
+import { extractNumericId } from '../common';
 
 export interface RemoteNodeInfo {
   nodeId: number;
@@ -19,7 +20,7 @@ export function handlePeerDiscovered(
   
   // TODO: Parse encrypted contact info to extract remote node info
   // For now, create a placeholder remote node entry
-  const remoteNodeId = parseInt(peer.stationId.replace(/\D/g, '')) || Math.floor(Math.random() * 1000000);
+  const remoteNodeId = extractNumericId(peer.stationId);
   
   const remoteNodeInfo: RemoteNodeInfo = {
     nodeId: remoteNodeId,

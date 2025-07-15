@@ -5,6 +5,7 @@ import { EnhancedRelayHandler } from "./src/enhancedRelayHandler";
 import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
 import { CryptoService } from "./src/crypto";
+import { parseIntSafe } from "./src/common";
 
 async function main() {
   // Check for local testing flag
@@ -266,7 +267,7 @@ async function handleCLICommands() {
 
         case 'regen-keys':
           const keySize = args.find(arg => arg.startsWith('--key-size='))?.split('=')[1];
-          await cli.regenerateKeys(keySize ? parseInt(keySize, 10) : 2048);
+          await cli.regenerateKeys(keySize ? parseIntSafe(keySize, 2048) : 2048);
           return true;
 
         case 'set':

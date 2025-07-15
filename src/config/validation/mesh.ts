@@ -4,6 +4,8 @@
  */
 
 import { ConfigValidationError } from './types';
+import { VALID_BAUD_RATES } from '../../common/constants';
+import { formatBaudRatesList } from '../../common/parsers';
 
 export function validateMesh(mesh: any): ConfigValidationError[] {
   const errors: ConfigValidationError[] = [];
@@ -31,13 +33,13 @@ export function validateMesh(mesh: any): ConfigValidationError[] {
   }
 
   // Baud rate validation
-  const validBaudRates = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600];
+  const validBaudRates = VALID_BAUD_RATES;
   if (mesh.baudRate === undefined || mesh.baudRate === null) {
     errors.push({ field: 'mesh.baudRate', message: 'Baud rate is required' });
   } else if (!validBaudRates.includes(mesh.baudRate)) {
     errors.push({
       field: 'mesh.baudRate',
-      message: `Baud rate must be one of: ${validBaudRates.join(', ')}`
+      message: `Baud rate must be one of: ${formatBaudRatesList(validBaudRates)}`
     });
   }
 

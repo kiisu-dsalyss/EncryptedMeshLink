@@ -4,6 +4,7 @@
  */
 
 import { ConfigValidationError } from './types';
+import { validateUrl, validateDiscoveryTimeout, validateDiscoveryCheckInterval } from '../../common/validation';
 
 export function validateDiscovery(discovery: any): ConfigValidationError[] {
   const errors: ConfigValidationError[] = [];
@@ -19,31 +20,36 @@ export function validateDiscovery(discovery: any): ConfigValidationError[] {
   } else if (typeof discovery.serviceUrl !== 'string') {
     errors.push({ field: 'discovery.serviceUrl', message: 'Service URL must be a string' });
   } else {
-    try {
-      new URL(discovery.serviceUrl);
-    } catch {
-      errors.push({ field: 'discovery.serviceUrl', message: 'Invalid URL format' });
+    const urlValidation = validateUrl(discovery.serviceUrl, 'Service URL');
+    if (!urlValidation.isValid) {
+      errors.push({ field: 'discovery.serviceUrl', message: urlValidation.error! });
     }
   }
 
   // Check interval validation
   if (discovery.checkInterval === undefined || discovery.checkInterval === null) {
     errors.push({ field: 'discovery.checkInterval', message: 'Check interval is required' });
-  } else if (!Number.isInteger(discovery.checkInterval) || discovery.checkInterval < 30 || discovery.checkInterval > 3600) {
-    errors.push({
-      field: 'discovery.checkInterval',
-      message: 'Check interval must be an integer between 30 and 3600 seconds'
-    });
+  } else {
+    const intervalValidation = validateDiscoveryCheckInterval(discovery.checkInterval);
+    if (!intervalValidation.isValid) {
+      errors.push({
+        field: 'discovery.checkInterval',
+        message: intervalValidation.error!
+      });
+    }
   }
 
   // Timeout validation
   if (discovery.timeout === undefined || discovery.timeout === null) {
     errors.push({ field: 'discovery.timeout', message: 'Timeout is required' });
-  } else if (!Number.isInteger(discovery.timeout) || discovery.timeout < 5 || discovery.timeout > 60) {
-    errors.push({
-      field: 'discovery.timeout',
-      message: 'Timeout must be an integer between 5 and 60 seconds'
-    });
+  } else {
+    const timeoutValidation = validateDiscoveryTimeout(discovery.timeout);
+    if (!timeoutValidation.isValid) {
+      errors.push({
+        field: 'discovery.timeout',
+        message: timeoutValidation.error!
+      });
+    }
   }
 
   return errors;

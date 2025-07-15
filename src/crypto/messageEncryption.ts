@@ -5,6 +5,7 @@
 
 import { createCipheriv, createDecipheriv, randomBytes, publicEncrypt, privateDecrypt } from 'crypto';
 import { CryptoConfig } from './types';
+import { createCryptoError } from '../common/errors';
 
 export async function encryptMessage(
   message: string, 
@@ -40,7 +41,7 @@ export async function encryptMessage(
 
     return JSON.stringify(payload);
   } catch (error) {
-    throw new Error(`Message encryption failed: ${error}`);
+    throw createCryptoError('Message encryption', error as Error);
   }
 }
 
@@ -67,6 +68,6 @@ export async function decryptMessage(
 
     return decrypted;
   } catch (error) {
-    throw new Error(`Message decryption failed: ${error}`);
+    throw createCryptoError('Message decryption', error as Error);
   }
 }

@@ -4,6 +4,7 @@
  */
 
 import { StationConfigManager } from './config/manager';
+import { parseIntSafe } from './common';
 
 export class ConfigCLI {
   private configManager: StationConfigManager;
@@ -178,8 +179,8 @@ export class ConfigCLI {
       
       // Handle numeric fields
       if (['checkInterval', 'timeout', 'listenPort', 'maxConnections', 'connectionTimeout', 'baudRate'].includes(finalField)) {
-        parsedValue = parseInt(value, 10);
-        if (isNaN(parsedValue)) {
+        parsedValue = parseIntSafe(value, 0);
+        if (parsedValue === 0 && value !== '0') {
           throw new Error(`Invalid numeric value: ${value}`);
         }
       }

@@ -4,25 +4,21 @@
  */
 
 import { ConfigValidationError } from './types';
+import { VALIDATION_RANGES } from '../../common/constants';
+import { validateStringLength } from '../../common/validation';
 
 export function validateDisplayName(displayName: any): ConfigValidationError[] {
   const errors: ConfigValidationError[] = [];
 
-  if (!displayName) {
-    errors.push({ field: 'displayName', message: 'Display name is required' });
-    return errors;
-  }
+  const lengthValidation = validateStringLength(
+    displayName,
+    VALIDATION_RANGES.DISPLAY_NAME_LENGTH.min,
+    VALIDATION_RANGES.DISPLAY_NAME_LENGTH.max,
+    'Display name'
+  );
 
-  if (typeof displayName !== 'string') {
-    errors.push({ field: 'displayName', message: 'Display name must be a string' });
-    return errors;
-  }
-
-  if (displayName.length < 1 || displayName.length > 100) {
-    errors.push({
-      field: 'displayName',
-      message: 'Display name must be 1-100 characters'
-    });
+  if (!lengthValidation.isValid) {
+    errors.push({ field: 'displayName', message: lengthValidation.error! });
   }
 
   return errors;

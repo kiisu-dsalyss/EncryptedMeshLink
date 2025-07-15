@@ -5,6 +5,7 @@
 
 import type { MeshDevice } from "@meshtastic/core";
 import { NodeInfo } from './types';
+import { parseTargetIdentifier } from '../common';
 
 export async function handleRelayMessage(
   device: MeshDevice,
@@ -19,9 +20,10 @@ export async function handleRelayMessage(
   let targetNodeId: number | undefined;
   let targetNode: NodeInfo | undefined;
   
-  // Check if it's a numeric ID
-  if (/^\d+$/.test(targetIdentifier)) {
-    targetNodeId = parseInt(targetIdentifier);
+  // Parse target identifier
+  const targetResult = parseTargetIdentifier(targetIdentifier);
+  if (targetResult.isNumeric) {
+    targetNodeId = targetResult.value as number;
     targetNode = knownNodes.get(targetNodeId);
   } else {
     // Search by name (longName or shortName)

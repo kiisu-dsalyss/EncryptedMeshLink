@@ -6,6 +6,7 @@
 import { createHash, pbkdf2, randomBytes } from 'crypto';
 import { promisify } from 'util';
 import { CryptoConfig } from './types';
+import { createCryptoError } from '../common/errors';
 
 const pbkdf2Async = promisify(pbkdf2);
 
@@ -29,7 +30,7 @@ export async function deriveDiscoveryKey(
 
     return derivedKey.toString('hex');
   } catch (error) {
-    throw new Error(`Discovery key derivation failed: ${error}`);
+    throw createCryptoError('Discovery key derivation', error as Error);
   }
 }
 

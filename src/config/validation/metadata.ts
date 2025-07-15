@@ -4,6 +4,7 @@
  */
 
 import { ConfigValidationError } from './types';
+import { validateTimestamp } from '../../common/validation';
 
 export function validateMetadata(metadata: any): ConfigValidationError[] {
   const errors: ConfigValidationError[] = [];
@@ -14,21 +15,15 @@ export function validateMetadata(metadata: any): ConfigValidationError[] {
   }
 
   // Created at validation
-  if (!metadata.createdAt) {
-    errors.push({ field: 'metadata.createdAt', message: 'Created timestamp is required' });
-  } else if (typeof metadata.createdAt !== 'string') {
-    errors.push({ field: 'metadata.createdAt', message: 'Created timestamp must be a string' });
-  } else if (isNaN(Date.parse(metadata.createdAt))) {
-    errors.push({ field: 'metadata.createdAt', message: 'Invalid created timestamp format' });
+  const createdValidation = validateTimestamp(metadata.createdAt, 'Created timestamp');
+  if (!createdValidation.isValid) {
+    errors.push({ field: 'metadata.createdAt', message: createdValidation.error! });
   }
 
   // Updated at validation
-  if (!metadata.updatedAt) {
-    errors.push({ field: 'metadata.updatedAt', message: 'Updated timestamp is required' });
-  } else if (typeof metadata.updatedAt !== 'string') {
-    errors.push({ field: 'metadata.updatedAt', message: 'Updated timestamp must be a string' });
-  } else if (isNaN(Date.parse(metadata.updatedAt))) {
-    errors.push({ field: 'metadata.updatedAt', message: 'Invalid updated timestamp format' });
+  const updatedValidation = validateTimestamp(metadata.updatedAt, 'Updated timestamp');
+  if (!updatedValidation.isValid) {
+    errors.push({ field: 'metadata.updatedAt', message: updatedValidation.error! });
   }
 
   // Version validation

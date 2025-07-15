@@ -11,6 +11,7 @@ import { StationConfig } from './config/types';
 import { NodeRegistryManager } from './nodeRegistry/manager';
 import { BridgeClient, createP2PBridgeClient } from './bridge/client';
 import { CryptoService } from './crypto';
+import { parseTargetIdentifier } from './common';
 
 export interface NodeInfo {
   num: number;
@@ -348,9 +349,10 @@ Examples:
     let targetNodeId: number | undefined;
     let targetNode: NodeInfo | undefined;
     
-    // Check if it's a numeric ID
-    if (/^\d+$/.test(targetIdentifier)) {
-      targetNodeId = parseInt(targetIdentifier);
+    // Parse target identifier
+    const targetResult = parseTargetIdentifier(targetIdentifier);
+    if (targetResult.isNumeric) {
+      targetNodeId = targetResult.value as number;
       targetNode = this.knownNodes.get(targetNodeId);
     } else {
       // Search by name (longName or shortName)
@@ -394,9 +396,10 @@ Examples:
     let targetNodeId: number | undefined;
     let targetNode: RemoteNodeInfo | undefined;
     
-    // Check if it's a numeric ID
-    if (/^\d+$/.test(targetIdentifier)) {
-      const nodeId = parseInt(targetIdentifier);
+    // Parse target identifier
+    const targetResult = parseTargetIdentifier(targetIdentifier);
+    if (targetResult.isNumeric) {
+      const nodeId = targetResult.value as number;
       targetNode = this.remoteNodes.get(nodeId);
       if (targetNode) {
         targetNodeId = nodeId;
@@ -613,12 +616,15 @@ Examples:
       }
 
       // Format nodes for bridge discovery message
-      const nodeData = localNodes.map((node: any) => ({
-        nodeId: parseInt(node.nodeId) || 0,
-        name: node.nodeName || `Node ${node.nodeId}`,
-        lastSeen: node.lastSeen || Date.now(),
-        signal: node.metadata?.signal || 0
-      }));
+      const nodeData = localNodes.map((node: any) => {
+        const targetResult = parseTargetIdentifier(node.nodeId);
+        return {
+          nodeId: targetResult.isNumeric ? (targetResult.value as number) : 0,
+          name: node.nodeName || `Node ${node.nodeId}`,
+          lastSeen: node.lastSeen || Date.now(),
+          signal: node.metadata?.signal || 0
+        };
+      });
 
       await this.bridgeClient.broadcastNodeDiscovery(nodeData);
       console.log(`📤 Sent ${nodeData.length} nodes to ${stationId}`);

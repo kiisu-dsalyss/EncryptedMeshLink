@@ -5,6 +5,7 @@
 
 import { DiscoveryClient, DiscoveredPeer } from '../discoveryClient';
 import { CryptoService } from '../crypto';
+import { parseTargetIdentifier } from '../common/parsers';
 
 export interface RemoteNodeInfo {
   nodeId: number;
@@ -30,9 +31,9 @@ export async function tryRemoteRelay(
   // Step 1: Find target in remote nodes
   let targetRemoteNode: RemoteNodeInfo | undefined;
   
-  const targetNum = parseInt(targetIdentifier);
-  if (!isNaN(targetNum)) {
-    targetRemoteNode = remoteNodes.get(targetNum);
+  const targetResult = parseTargetIdentifier(targetIdentifier);
+  if (targetResult.isNumeric) {
+    targetRemoteNode = remoteNodes.get(targetResult.value as number);
   }
   
   if (!targetRemoteNode) {

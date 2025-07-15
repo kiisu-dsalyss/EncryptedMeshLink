@@ -5,6 +5,8 @@
 
 import { config } from 'dotenv';
 import { join } from 'path';
+import { VALID_BAUD_RATES, VALIDATION_RANGES } from '../common/constants';
+import { parseIntSafe, formatBaudRatesList } from '../common/parsers';
 
 // Load environment variables
 config();
@@ -43,20 +45,20 @@ class EnvConfig {
     this.config = {
       discovery: {
         url: process.env.ENCRYPTEDMESHLINK_DISCOVERY_URL || 'https://discovery.encryptedmeshlink.net/api',
-        timeout: parseInt(process.env.ENCRYPTEDMESHLINK_DISCOVERY_TIMEOUT || '30', 10),
-        checkInterval: parseInt(process.env.ENCRYPTEDMESHLINK_DISCOVERY_CHECK_INTERVAL || '300', 10)
+        timeout: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DISCOVERY_TIMEOUT, 30),
+        checkInterval: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DISCOVERY_CHECK_INTERVAL, 300)
       },
       p2p: {
-        listenPort: parseInt(process.env.ENCRYPTEDMESHLINK_P2P_LISTEN_PORT || '8447', 10),
-        maxConnections: parseInt(process.env.ENCRYPTEDMESHLINK_P2P_MAX_CONNECTIONS || '10', 10),
-        connectionTimeout: parseInt(process.env.ENCRYPTEDMESHLINK_P2P_CONNECTION_TIMEOUT || '30', 10)
+        listenPort: parseIntSafe(process.env.ENCRYPTEDMESHLINK_P2P_LISTEN_PORT, 8447),
+        maxConnections: parseIntSafe(process.env.ENCRYPTEDMESHLINK_P2P_MAX_CONNECTIONS, 10),
+        connectionTimeout: parseIntSafe(process.env.ENCRYPTEDMESHLINK_P2P_CONNECTION_TIMEOUT, 30)
       },
       mesh: {
         autoDetect: (process.env.ENCRYPTEDMESHLINK_MESH_AUTO_DETECT || 'true').toLowerCase() === 'true',
-        baudRate: parseInt(process.env.ENCRYPTEDMESHLINK_MESH_BAUD_RATE || '115200', 10)
+        baudRate: parseIntSafe(process.env.ENCRYPTEDMESHLINK_MESH_BAUD_RATE, 115200)
       },
       security: {
-        defaultKeySize: parseInt(process.env.ENCRYPTEDMESHLINK_DEFAULT_KEY_SIZE || '2048', 10)
+        defaultKeySize: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DEFAULT_KEY_SIZE, 2048)
       },
       logging: {
         level: process.env.ENCRYPTEDMESHLINK_LOG_LEVEL || 'info',
@@ -143,14 +145,15 @@ class EnvConfig {
     }
 
     // Validate mesh settings
-    const validBaudRates = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600];
+    const validBaudRates = VALID_BAUD_RATES;
     if (!validBaudRates.includes(this.config.mesh.baudRate)) {
-      errors.push(`Invalid baud rate: ${this.config.mesh.baudRate}. Must be one of: ${validBaudRates.join(', ')}`);
+      errors.push(`Invalid baud rate: ${this.config.mesh.baudRate}. Must be one of: ${formatBaudRatesList(validBaudRates)}`);
     }
 
     // Validate security settings
-    if (this.config.security.defaultKeySize < 1024 || this.config.security.defaultKeySize > 4096) {
-      errors.push(`Default key size must be between 1024 and 4096: ${this.config.security.defaultKeySize}`);
+    const keyRange = VALIDATION_RANGES.DEFAULT_KEY_SIZE;
+    if (this.config.security.defaultKeySize < keyRange.min || this.config.security.defaultKeySize > keyRange.max) {
+      errors.push(`Default key size must be between ${keyRange.min} and ${keyRange.max}: ${this.config.security.defaultKeySize}`);
     }
 
     return errors;

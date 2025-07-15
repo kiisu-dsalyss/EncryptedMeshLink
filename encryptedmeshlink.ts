@@ -4,6 +4,7 @@ import { NodeManager } from "./src/nodeManager";
 import { EnhancedRelayHandler } from "./src/enhancedRelayHandler";
 import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
+import { CryptoService } from "./src/crypto";
 
 async function main() {
   console.log("🔍 Looking for Meshtastic device...");
@@ -15,6 +16,10 @@ async function main() {
     const config = JSON.parse(configData);
     
     console.log(`🏗️ Loaded configuration for station: ${config.stationId}`);
+    
+    // Initialize crypto service for P2P messaging
+    const crypto = new CryptoService(config);
+    console.log("🔐 Crypto service initialized for P2P messaging");
     
     // Create transport and device
     const transport = await TransportNodeSerial.create();
@@ -34,7 +39,7 @@ async function main() {
       console.log(`📱 Station node number: ${myNodeNum}`);
       
       // Initialize enhanced relay handler with bridge support
-      relayHandler = new EnhancedRelayHandler(device, knownNodes, config, myNodeNum);
+      relayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, myNodeNum);
       
       // Initialize bridge services for internet connectivity
       try {

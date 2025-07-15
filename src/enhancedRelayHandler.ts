@@ -9,7 +9,8 @@ import type { MeshDevice } from "@meshtastic/core";
 import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
 import { StationConfig } from './config/types';
 import { NodeRegistryManager } from './nodeRegistry/manager';
-import { BridgeClient } from './bridge/client';
+import { BridgeClient, createP2PBridgeClient } from './bridge/client';
+import { CryptoService } from './crypto';
 
 export interface NodeInfo {
   num: number;
@@ -36,16 +37,19 @@ export class EnhancedRelayHandler {
   private bridgeClient?: BridgeClient;
   private myNodeNum?: number;
   private config: StationConfig;
+  private crypto: CryptoService;
 
   constructor(
     device: MeshDevice, 
     knownNodes: Map<number, NodeInfo>, 
     config: StationConfig,
+    crypto: CryptoService,
     myNodeNum?: number
   ) {
     this.device = device;
     this.knownNodes = knownNodes;
     this.config = config;
+    this.crypto = crypto;
     this.myNodeNum = myNodeNum;
   }
 
@@ -58,13 +62,18 @@ export class EnhancedRelayHandler {
     try {
       this.discoveryClient = new DiscoveryClient(this.config);
       
-      // Initialize Bridge Client
-      this.bridgeClient = new BridgeClient({
-        discoveryServiceUrl: this.config.discovery.serviceUrl,
-        stationId: this.config.stationId,
-        pollingInterval: 30000,
-        autoStart: false
-      });
+      // Initialize Bridge Client with P2P transport
+      this.bridgeClient = createP2PBridgeClient(
+        this.config.stationId,
+        this.crypto,
+        this.discoveryClient,
+        {
+          pollingInterval: 30000,
+          autoStart: false,
+          localPort: 8080,
+          connectionTimeout: 10000
+        }
+      );
       
       // Initialize Node Registry
       this.nodeRegistry = new NodeRegistryManager(

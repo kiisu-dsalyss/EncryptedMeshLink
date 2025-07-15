@@ -1,9 +1,16 @@
 /**
- * Bridge Transport Layer - MIB-008
+ * Bridge Transport Layer - MIB-008  
  * Handles sending and receiving bridge messages via discovery service relay
+ * 
+ * 🚨 ARCHITECTURE WARNING: This transport is DISABLED and should not be used!
+ * Discovery service is ONLY for peer discovery, NOT message relay.
+ * Use P2PTransport from MIB-010 instead.
  */
 
-import { BridgeMessage, ErrorResponse, AckMessage, serializeBridgeMessage, deserializeBridgeMessage, createErrorResponse, ErrorCode } from './protocol.js';
+import { BridgeMessage, ErrorResponse, AckMessage, serializeBridgeMessage, deserializeBridgeMessage, createErrorResponse, ErrorCode } from './protocol';
+import { P2PTransport, P2PTransportConfig } from '../p2p/transport';
+import { CryptoService } from '../crypto';
+import { DiscoveryClient } from '../discoveryClient';
 
 export interface BridgeTransportConfig {
   discoveryServiceUrl: string;
@@ -224,12 +231,16 @@ export class BridgeTransport {
 
 /**
  * Create a bridge transport instance with default configuration
+ * 
+ * 🚨 DEPRECATED: Use createP2PBridgeTransport instead!
  */
 export function createBridgeTransport(
   discoveryServiceUrl: string,
   stationId: string,
   options: Partial<BridgeTransportConfig> = {}
 ): BridgeTransport {
+  console.warn('🚨 createBridgeTransport is DEPRECATED! Use createP2PBridgeTransport instead.');
+  
   const config: BridgeTransportConfig = {
     discoveryServiceUrl,
     stationId,
@@ -240,4 +251,26 @@ export function createBridgeTransport(
   };
 
   return new BridgeTransport(config);
+}
+
+/**
+ * Create a P2P-based bridge transport (MIB-010)
+ * This is the correct way to create bridge transport with direct P2P messaging
+ */
+export function createP2PBridgeTransport(
+  stationId: string,
+  crypto: CryptoService,
+  discoveryClient?: DiscoveryClient,
+  options: Partial<P2PTransportConfig> = {}
+): P2PTransport {
+  const config: P2PTransportConfig = {
+    stationId,
+    localPort: 8080,     // Default P2P port
+    connectionTimeout: 10000,
+    retryAttempts: 3,
+    retryDelay: 1000,
+    ...options
+  };
+
+  return new P2PTransport(config, crypto, discoveryClient);
 }

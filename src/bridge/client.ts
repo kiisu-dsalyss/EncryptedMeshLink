@@ -1,9 +1,12 @@
 /**
- * Bridge Client - MIB-008
- * High-level interface for bridge message communication
+ * Bridge Client - MIB-008 
+ * High-level interface for bridge message communication via P2P (MIB-010)
  */
 
-import { BridgeTransport, createBridgeTransport, BridgeTransportStats } from './transport.js';
+import { BridgeTransport, createBridgeTransport, createP2PBridgeTransport, BridgeTransportStats } from './transport';
+import { P2PTransport, P2PTransportStats } from '../p2p/transport';
+import { CryptoService } from '../crypto';
+import { DiscoveryClient } from '../discoveryClient';
 import { 
   BridgeMessage, 
   MessageType, 
@@ -17,10 +20,14 @@ import {
 import { EventEmitter } from 'events';
 
 export interface BridgeClientConfig {
-  discoveryServiceUrl: string;
   stationId: string;
   pollingInterval: number;
   autoStart: boolean;
+  // Legacy fields (deprecated)
+  discoveryServiceUrl?: string;
+  // New P2P fields
+  localPort?: number;
+  connectionTimeout?: number;
 }
 
 export interface BridgeClientEvents {
@@ -34,19 +41,29 @@ export interface BridgeClientEvents {
 }
 
 /**
- * High-level bridge client for inter-station communication
+ * High-level bridge client for inter-station communication via P2P
  */
 export class BridgeClient extends EventEmitter {
   private config: BridgeClientConfig;
-  private transport: BridgeTransport;
+  private transport: P2PTransport;
   private pollingTimer: ReturnType<typeof setInterval> | null = null;
   private isRunning = false;
   private myNodeNumber: number | null = null;
 
-  constructor(config: BridgeClientConfig) {
+  constructor(config: BridgeClientConfig, crypto: CryptoService, discoveryClient?: DiscoveryClient) {
     super();
     this.config = config;
-    this.transport = createBridgeTransport(config.discoveryServiceUrl, config.stationId);
+    
+    // Create P2P transport instead of discovery-based transport
+    this.transport = createP2PBridgeTransport(
+      config.stationId,
+      crypto,
+      discoveryClient,
+      {
+        localPort: config.localPort || 8080,
+        connectionTimeout: config.connectionTimeout || 10000
+      }
+    );
     
     this.setupMessageHandlers();
     
@@ -56,7 +73,7 @@ export class BridgeClient extends EventEmitter {
   }
 
   /**
-   * Start the bridge client
+   * Start the bridge client with P2P transport
    */
   async start(): Promise<void> {
     if (this.isRunning) {
@@ -64,7 +81,10 @@ export class BridgeClient extends EventEmitter {
     }
 
     this.isRunning = true;
-    this.startPolling();
+    
+    // Start P2P transport instead of polling
+    await this.transport.start();
+    
     this.emit('connected');
     
     console.log(`🌉 Bridge client started for station: ${this.config.stationId}`);
@@ -79,7 +99,10 @@ export class BridgeClient extends EventEmitter {
     }
 
     this.isRunning = false;
-    this.stopPolling();
+    
+    // Stop P2P transport instead of polling
+    await this.transport.stop();
+    
     this.emit('disconnected');
     
     console.log(`🌉 Bridge client stopped for station: ${this.config.stationId}`);
@@ -329,46 +352,52 @@ export class BridgeClient extends EventEmitter {
     });
   }
 
-  /**
-   * Start bridge client - discovery only, no message polling
-   */
-  private startPolling(): void {
-    // IMPORTANT: Discovery service is ONLY for peer discovery, NOT message relay!
-    // Messages should go P2P directly between stations, not through discovery service.
-    
-    console.log('🌉 Bridge client started - using discovery for peer finding only');
-    console.log('📡 P2P direct messaging will be implemented in MIB-010');
-    
-    // The discovery service is ONLY used by the discovery client to find peers
-    // This bridge client will be used for direct P2P communication once implemented
-  }
-
-  /**
-   * Stop polling for messages
-   */
-  private stopPolling(): void {
-    if (this.pollingTimer) {
-      clearInterval(this.pollingTimer);
-      this.pollingTimer = null;
-    }
-  }
+  // Polling methods removed - P2P transport handles connections directly
 }
 
 /**
  * Create a bridge client with default configuration
+ * 
+ * 🚨 DEPRECATED: Use createP2PBridgeClient instead!
  */
 export function createBridgeClient(
   discoveryServiceUrl: string,
   stationId: string,
+  crypto: CryptoService,
+  discoveryClient?: DiscoveryClient,
   options: Partial<BridgeClientConfig> = {}
 ): BridgeClient {
+  console.warn('🚨 createBridgeClient is DEPRECATED! Use createP2PBridgeClient instead.');
+  
   const config: BridgeClientConfig = {
-    discoveryServiceUrl,
     stationId,
     pollingInterval: 5000, // 5 seconds
     autoStart: false,
+    discoveryServiceUrl, // Legacy field
     ...options
   };
 
-  return new BridgeClient(config);
+  return new BridgeClient(config, crypto, discoveryClient);
+}
+
+/**
+ * Create a P2P-based bridge client (MIB-010)
+ * This is the correct way to create bridge client with direct P2P messaging
+ */
+export function createP2PBridgeClient(
+  stationId: string,
+  crypto: CryptoService,
+  discoveryClient?: DiscoveryClient,
+  options: Partial<BridgeClientConfig> = {}
+): BridgeClient {
+  const config: BridgeClientConfig = {
+    stationId,
+    pollingInterval: 5000, // 5 seconds for peer discovery
+    autoStart: false,
+    localPort: 8080,
+    connectionTimeout: 10000,
+    ...options
+  };
+
+  return new BridgeClient(config, crypto, discoveryClient);
 }

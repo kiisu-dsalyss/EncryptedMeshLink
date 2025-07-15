@@ -33,12 +33,14 @@
     "@meshtastic/protobufs": "npm:@jsr/meshtastic__protobufs@^2.7.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.0.13",
+    "@types/ws": "^8.18.1",
     "better-sqlite3": "^12.2.0",
     "dotenv": "^17.2.0",
     "serialport": "^13.0.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

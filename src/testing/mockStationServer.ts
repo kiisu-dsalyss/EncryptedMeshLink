@@ -101,6 +101,7 @@ class MockStationServer {
     private cryptoService: CryptoService | null = null;
     private stationConfig: StationConfig | null = null;
     private isRunning: boolean = false;
+    private processedMessageIds: Set<string> = new Set();
 
     constructor() {
         this.mockStation = new MockStation(MOCK_STATION_CONFIG);
@@ -253,6 +254,24 @@ class MockStationServer {
                 toNode: number;
                 message: string;
             }) => {
+                // Generate a unique key for this message
+                const messageKey = `${fromStation}-${fromNode}-${toNode}-${message}`;
+                
+                // Check for duplicate message
+                if (this.processedMessageIds.has(messageKey)) {
+                    console.log(`🔄 Ignoring duplicate message: ${messageKey}`);
+                    return;
+                }
+                
+                // Mark message as processed
+                this.processedMessageIds.add(messageKey);
+                
+                // Clean up old message IDs (keep only last 100)
+                if (this.processedMessageIds.size > 100) {
+                    const messagesToDelete = Array.from(this.processedMessageIds).slice(0, 50);
+                    messagesToDelete.forEach(id => this.processedMessageIds.delete(id));
+                }
+                
                 console.log(`📨 Received relay message from ${fromStation}:${fromNode} to ${toNode}: "${message}"`);
                 
                 // Convert toNode number to node name

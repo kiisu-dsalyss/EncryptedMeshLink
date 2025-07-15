@@ -3,4 +3,4 @@
  * Re-exports the modular implementation
  */
 
-export * from './relayHandler/index';
+export * from './relayHandler/index.js';

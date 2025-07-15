@@ -3,4 +3,4 @@
  * Re-exports the modular implementation
  */
 
-export * from './crypto/index';
+export * from './crypto/index.js';

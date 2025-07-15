@@ -4,6 +4,7 @@
   "description": "EncryptedMeshLink - Internet bridge system for Meshtastic mesh networks with encrypted P2P discovery",
   "main": "encryptedmeshlink.ts",
   "scripts": {
+    "build": "tsc",
     "start": "tsx encryptedmeshlink.ts",
     "dev": "tsx encryptedmeshlink.ts",
     "dev:watch": "tsx watch encryptedmeshlink.ts",

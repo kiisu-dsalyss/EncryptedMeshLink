@@ -6,13 +6,36 @@ import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
 import { CryptoService } from "./src/crypto";
 import { parseIntSafe } from "./src/common";
+import { UpdateScheduler } from "./src/deployment";
+import * as path from 'path';
 
 async function main() {
-  // Check for local testing flag
+  // Check for command line flags
   const args = process.argv.slice(2);
+  
   if (args.includes('--local-testing')) {
     process.env.EML_LOCAL_TESTING = 'true';
     console.log("🏠 Local testing mode enabled");
+  }
+
+  // Initialize auto-update scheduler if enabled
+  if (args.includes('--auto-update') || process.env.ENCRYPTEDMESHLINK_AUTO_UPDATE === 'true') {
+    const updateScheduler = new UpdateScheduler({
+      repoPath: process.cwd(),
+      branch: process.env.ENCRYPTEDMESHLINK_UPDATE_BRANCH || 'master',
+      intervalHours: parseInt(process.env.ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS || '1'),
+      enabled: true
+    });
+    
+    updateScheduler.start();
+    console.log("🔄 Auto-update scheduler started");
+    
+    // Graceful shutdown handling
+    process.on('SIGTERM', () => {
+      console.log('📤 Received SIGTERM, stopping auto-update scheduler...');
+      updateScheduler.stop();
+      process.exit(0);
+    });
   }
 
   console.log("🔍 Looking for Meshtastic device...");

@@ -1,7 +1,7 @@
 import { Utils } from "@meshtastic/core";
 import type { Types } from "@meshtastic/core";
 import { SerialPort } from "serialport";
-import { findPort } from "../findPort";
+import { findPortWithFallback } from "./hardware/deviceDetection";
 
 // Custom Node.js Serial Transport based on the official web-serial transport
 export class TransportNodeSerial implements Types.Transport {
@@ -10,10 +10,12 @@ export class TransportNodeSerial implements Types.Transport {
   private port: SerialPort;
 
   public static async create(baudRate?: number): Promise<TransportNodeSerial> {
-    const portPath = await findPort();
+    const portPath = await findPortWithFallback();
     if (!portPath) {
       throw new Error("No Meshtastic device found");
     }
+    
+    console.log(`🔌 Connecting to physical device: ${portPath}`);
     
     const port = new SerialPort({
       path: portPath,

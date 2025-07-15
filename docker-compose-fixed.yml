@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Standard deployment with auto-update
+  encryptedmeshlink:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eml-station
+    restart: unless-stopped
+    
+    # Environment configuration
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTEDMESHLINK_AUTO_UPDATE=true
+      - ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS=1
+      - ENCRYPTEDMESHLINK_UPDATE_BRANCH=master
+      - EML_LOCAL_TESTING=false
+    
+    # Volume mounts for persistence and A/B deployment
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.git:/app/.git:ro  # Read-only git for auto-updates
+      - deployment-staging:/app/deployment/staging
+      - deployment-production:/app/deployment/production
+      - deployment-backup:/app/deployment/backup
+    
+    # Network configuration
+    ports:
+      - "8447:8447"
+      - "3000:3000"
+    
+    # USB device access for Meshtastic
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyACM0:/dev/ttyACM0
+    
+    # Privileged access for hardware
+    privileged: true
+    
+    # Health check for A/B deployment validation
+    healthcheck:
+      test: ["CMD", "npx", "tsx", "encryptedmeshlink.ts", "help"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  deployment-staging:
+    driver: local
+  deployment-production:
+    driver: local
+  deployment-backup:
+    driver: local

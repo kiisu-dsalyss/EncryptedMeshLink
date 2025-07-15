@@ -9,7 +9,7 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 - 📡 **Local Mesh Relay** - Routes messages within mesh using `@{identifier}` format
 - 🔍 **USB Auto-Detection** - Finds and connects to Meshtastic devices automatically  
 - 👥 **Node Management** - Tracks and resolves node names for human-readable messaging
-- 💬 **Enhanced Commands** - `"status"` shows bridge info, `"nodes"` lists actual node names like "Fester"
+- 💬 **Enhanced Commands** - `"status"` shows bridge info, `"nodes"`
 - 🔧 **Robust Error Handling** - Graceful PKI timeout management and auto-recovery
 - 🏗️ **Modular Architecture** - Clean TypeScript implementation with separation of concerns
 
@@ -169,7 +169,7 @@ npm start
 
 1. **Message Relay**: Send `@base hello from mobile` to route messages to the "base" station
 2. **Node Discovery**: Shows `[From 1234567890 (StationName)]` with human-readable names  
-3. **Enhanced Commands**: Send `"status"` for bridge info, `"nodes"` to see actual node names like "Fester"
+3. **Enhanced Commands**: Send `"status"` for bridge info, `"nodes"` to see actual node names
 4. **Help System**: Send `@instructions` to get available commands
 5. **Echo Test**: Send `@echo test message` to verify the system is working
 6. **Discovery Service Ready**: PHP service ready for deployment to your hosting

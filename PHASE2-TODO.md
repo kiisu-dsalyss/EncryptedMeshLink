@@ -247,14 +247,14 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 ### MIB-007: Enhanced Relay Handler ✅ COMPLETED (was Epic 3)
 **Note**: This was completed as MIB-005. The original MIB-007 scope is now complete.
 
-### MIB-008: Bridge Message Protocol ✅ COMPLETED
+### MIB-008: Bridge Message Protocol 🚧 PARTIALLY COMPLETE
 **Type**: Protocol Design  
 **Priority**: P0 - Critical  
-**Status**: ✅ COMPLETE
+**Status**: 🚧 ARCHITECTURE REDESIGN NEEDED
 
-**Description**: ✅ Define message format and protocol for inter-station communication.
+**Description**: 🚧 Define message format and protocol for inter-station communication.
 
-**Acceptance Criteria**: ✅ ALL COMPLETE
+**Acceptance Criteria**: 🚧 PROTOCOL COMPLETE, TRANSPORT NEEDS REDESIGN
 - ✅ Basic message routing structure (in enhancedRelayHandler.ts)
 - ✅ JSON message format specification
 - ✅ Message type definitions
@@ -263,22 +263,22 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 - ✅ Message compression support (framework ready)
 - ✅ Protocol documentation
 
-**Implementation**: ✅ COMPLETE
+**Implementation**: 🚧 PROTOCOL COMPLETE, TRANSPORT LAYER DISABLED
 - ✅ Full protocol specification in `src/bridge/protocol.ts`
-- ✅ Transport layer implementation in `src/bridge/transport.ts`
-- ✅ High-level client API in `src/bridge/client.ts`
+- 🚨 Transport layer in `src/bridge/transport.ts` - DISABLED (was incorrectly using discovery service)
+- 🚨 High-level client API in `src/bridge/client.ts` - POLLING DISABLED (architecture violation fixed)
 - ✅ Comprehensive test suite (20 tests) with 100% pass rate
 - ✅ Message serialization/validation with error handling
 - ✅ Retry logic with exponential backoff
 - ✅ Support for all message types (user, command, system, protocol)
 
-**Current Status**: ✅ COMPLETE - Node Registry integrated with Enhanced Relay Handler
+**Current Status**: 🚨 TRANSPORT LAYER DISABLED - Discovery service was incorrectly being used for message relay. Protocol is complete but needs MIB-010 P2P implementation.
 
 **Integration Features**: 
 - ✅ Command structure updated: "status" shows relay/bridge status, "nodes" lists actual node names
 - ✅ Local nodes automatically registered with Node Registry on bridge initialization  
 - ✅ Cross-station node visibility via `handleListNodesRequest()` method
-- ✅ Real node names (like "Fester") displayed in node listing commands
+- ✅ Real node names displayed in node listing commands
 - ✅ Bridge status separated from node listing for better UX
 - ✅ All 220 tests passing including Node Registry integration
 
@@ -314,7 +314,42 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 
 ## Epic 4: User Interface & Monitoring
 
-### MIB-010: Bridge Status Dashboard 📋 PLANNED
+### MIB-010: Direct P2P Messaging System 📋 PLANNED
+**Type**: Core Communication  
+**Priority**: P0 - Critical  
+**Status**: 📋 NOT STARTED
+
+**Description**: Direct peer-to-peer message delivery between stations without relaying through discovery service.
+
+**Acceptance Criteria**: 📋 PENDING
+- [ ] Direct P2P connection establishment between stations
+- [ ] Message delivery over P2P connections (TCP/WebSocket)
+- [ ] Connection pool management and keep-alive
+- [ ] Automatic failover and retry logic
+- [ ] NAT traversal and firewall handling
+- [ ] End-to-end encryption for P2P messages
+- [ ] Message routing for multi-hop scenarios
+
+**Implementation**: 📋 NOT STARTED
+- [ ] P2P connection manager in `src/p2p/connectionManager.ts`
+- [ ] Direct message transport in `src/p2p/transport.ts`  
+- [ ] NAT traversal utilities in `src/p2p/natTraversal.ts`
+- [ ] Integration with existing bridge protocol
+- [ ] Replace disabled methods in `src/bridge/transport.ts`
+- [ ] Update `src/bridge/client.ts` to use P2P transport
+- [ ] Comprehensive test suite for P2P functionality
+
+**Current Status**: 🚨 CRITICAL - Bridge transport layer disabled due to architecture violation. Direct P2P implementation urgently needed to restore messaging functionality.
+
+**Architecture Notes**: 
+- 📡 Discovery service is ONLY for peer discovery, NOT message relay
+- 🎯 Messages must go directly station-to-station via P2P connections
+- 🔐 End-to-end encryption maintained throughout P2P delivery
+- 🔄 Failover logic for unreachable stations
+
+---
+
+### MIB-011: Bridge Status Dashboard 📋 PLANNED
 **Type**: Web Interface  
 **Priority**: P2 - Medium  
 **Status**: 📋 NOT STARTED
@@ -350,7 +385,7 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 
 ## Epic 5: Testing & Deployment
 
-### MIB-012: Integration Test Suite 🚧 PARTIALLY COMPLETE
+### MIB-013: Integration Test Suite 🚧 PARTIALLY COMPLETE
 **Type**: Quality Assurance  
 **Priority**: P1 - High  
 **Status**: 🚧 IN PROGRESS
@@ -369,7 +404,7 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 
 ---
 
-### MIB-013: Deployment Documentation 🚧 PARTIALLY COMPLETE
+### MIB-014: Deployment Documentation 🚧 PARTIALLY COMPLETE
 **Type**: Documentation  
 **Priority**: P1 - High  
 **Status**: 🚧 IN PROGRESS
@@ -389,7 +424,7 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 
 ---
 
-### MIB-014: Release Packaging 📋 PLANNED
+### MIB-015: Release Packaging 📋 PLANNED
 **Type**: Build & Deploy  
 **Priority**: P1 - High  
 **Status**: 📋 NOT STARTED
@@ -406,7 +441,7 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 
 ---
 
-### MIB-015: Docker Development Environment 📋 PLANNED
+### MIB-016: Docker Development Environment 📋 PLANNED
 **Type**: Development Infrastructure  
 **Priority**: P0 - Critical  
 **Status**: 📋 NOT STARTED
@@ -423,7 +458,7 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 
 ---
 
-### MIB-016: Production Containerization 📋 PLANNED
+### MIB-017: Production Containerization 📋 PLANNED
 **Type**: Deployment Infrastructure  
 **Priority**: P1 - High  
 **Status**: 📋 NOT STARTED
@@ -443,45 +478,51 @@ Develop a secure peer-to-peer bridge system allowing Meshtastic devices at diffe
 ## Current Priority Recommendations
 
 ### Immediate Next Steps (Priority 1)
-1. **Complete MIB-003 Cryptography Module** - Finish end-to-end message encryption
-2. **Implement MIB-006 Message Queue System** - SQLite persistence for offline delivery
-3. **Define MIB-008 Bridge Message Protocol** - Formal protocol specification
+1. **🚨 CRITICAL: Implement MIB-010 Direct P2P Messaging System** - Bridge transport disabled, urgent fix needed
+2. **Complete MIB-003 Cryptography Module** - Finish end-to-end message encryption
+3. **Implement MIB-006 Message Queue System** - SQLite persistence for offline delivery
 
 ### Short Term (Priority 2)
-4. **Complete MIB-013 Documentation** - Full deployment and setup guides
-5. **Implement MIB-015 Docker Development** - Multi-station testing environment
-6. **Basic MIB-012 Integration Tests** - End-to-end bridge testing
+4. **Fix MIB-008 Bridge Message Protocol** - Restore transport layer with P2P implementation
+5. **Complete MIB-014 Documentation** - Full deployment and setup guides
+6. **Implement MIB-016 Docker Development** - Multi-station testing environment
 
 ### Medium Term (Priority 3)
-7. **MIB-009 Node Registry Bridge** - Cross-station node tracking
-8. **MIB-014 Release Packaging** - Easy deployment system
-9. **MIB-016 Production Containers** - Pi-optimized deployment
+7. **MIB-013 Integration Tests** - End-to-end bridge testing with P2P
+8. **MIB-015 Release Packaging** - Easy deployment system
+9. **MIB-011 Bridge Status Dashboard** - Monitoring interface
+10. **MIB-017 Production Containers** - Pi-optimized deployment
 
 ---
 
 ## Progress Summary
 
-✅ **Completed (6/16 modules)**:
+✅ **Completed (7/17 modules)**:
 - MIB-001: Discovery Service (PHP) - Ready for deployment
 - MIB-002: Station Configuration System
 - MIB-003: Cryptography Module - Complete P2P encryption
 - MIB-004: Discovery Client
 - MIB-005: Enhanced Relay Handler
 - MIB-007: Bridge Integration (completed as MIB-005)
+- MIB-009: Node Registry Bridge - Complete with SQLite storage and Enhanced Relay integration
 
-🚧 **In Progress (2/16 modules)**:
-- MIB-012: Integration Test Suite (unit tests complete)
-- MIB-013: Deployment Documentation (basic complete)
+🚧 **Partially Complete (1/17 modules)**:
+- MIB-008: Bridge Message Protocol - Protocol complete, transport layer disabled due to architecture violation
 
-📋 **Not Started (8/16 modules)**:
+🚨 **Critical Priority (1/17 modules)**:
+- MIB-010: Direct P2P Messaging System - Urgently needed to restore messaging functionality
+
+🚧 **In Progress (2/17 modules)**:
+- MIB-013: Integration Test Suite (unit tests complete)
+- MIB-014: Deployment Documentation (basic complete)
+
+📋 **Not Started (6/17 modules)**:
 - MIB-006: Message Queue System
-- MIB-008: Bridge Message Protocol (partial structure exists)
-- MIB-009: Node Registry Bridge
-- MIB-010: Bridge Status Dashboard
-- MIB-011: Enhanced CLI Commands
-- MIB-014: Release Packaging
-- MIB-015: Docker Development Environment
-- MIB-016: Production Containerization
+- MIB-011: Bridge Status Dashboard
+- MIB-012: Enhanced CLI Commands  
+- MIB-015: Release Packaging
+- MIB-016: Docker Development Environment
+- MIB-017: Production Containerization
 
 **Overall Progress**: 43.75% Complete (6 complete + 1 partial = 7/16 modules)
 

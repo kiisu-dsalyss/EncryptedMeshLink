@@ -221,8 +221,8 @@ describe('NodeManager', () => {
       expect(console.log).toHaveBeenCalledWith('   Send "@{nodeId} {message}" to relay by ID');
       expect(console.log).toHaveBeenCalledWith('   Send "@{nodeName} {message}" to relay by name');
       expect(console.log).toHaveBeenCalledWith('   Example: "@1111111111 Hello there!"');
-      expect(console.log).toHaveBeenCalledWith('   Example: "@demo Hello there!"');
-      expect(console.log).toHaveBeenCalledWith('===================\n');
+      expect(console.log).toHaveBeenCalledWith('   Example: "@alice Hello there!"');
+      expect(console.log).toHaveBeenCalledWith('===================');
     });
 
     test('identifies correct device when myNodeNum matches', () => {

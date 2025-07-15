@@ -90,6 +90,56 @@ describe('MessageParser', () => {
       });
     });
 
+    describe('instructions command', () => {
+      test('parses "instructions" command exactly', () => {
+        const result = MessageParser.parseMessage('instructions');
+        
+        expect(result).toEqual({
+          type: 'instructions'
+        });
+      });
+
+      test('parses "INSTRUCTIONS" command (uppercase)', () => {
+        const result = MessageParser.parseMessage('INSTRUCTIONS');
+        
+        expect(result).toEqual({
+          type: 'instructions'
+        });
+      });
+
+      test('parses "Instructions" command (mixed case)', () => {
+        const result = MessageParser.parseMessage('Instructions');
+        
+        expect(result).toEqual({
+          type: 'instructions'
+        });
+      });
+
+      test('parses "help" command as instructions', () => {
+        const result = MessageParser.parseMessage('help');
+        
+        expect(result).toEqual({
+          type: 'instructions'
+        });
+      });
+
+      test('parses "HELP" command as instructions', () => {
+        const result = MessageParser.parseMessage('HELP');
+        
+        expect(result).toEqual({
+          type: 'instructions'
+        });
+      });
+
+      test('handles instructions with trailing whitespace', () => {
+        const result = MessageParser.parseMessage('instructions   ');
+        
+        expect(result).toEqual({
+          type: 'instructions'
+        });
+      });
+    });
+
     describe('echo messages (default)', () => {
       test('treats plain text as echo', () => {
         const result = MessageParser.parseMessage('hello world');
@@ -131,8 +181,8 @@ describe('MessageParser', () => {
         });
       });
 
-      test('treats instructions command as echo', () => {
-        const result = MessageParser.parseMessage('instructions');
+      test('treats unknown commands as echo', () => {
+        const result = MessageParser.parseMessage('unknown');
         
         expect(result).toEqual({
           type: 'echo'

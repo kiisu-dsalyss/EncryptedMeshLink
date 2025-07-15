@@ -46,6 +46,6 @@ export class NodeManager {
     console.log("   Send \"@{nodeName} {message}\" to relay by name");
     console.log("   Example: \"@1111111111 Hello there!\"");
     console.log("   Example: \"@alice Hello there!\"");
-    console.log("===================\n");
+    console.log("===================");
   }
 }

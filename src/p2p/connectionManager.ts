@@ -33,7 +33,7 @@ import {
   P2PConnectionStatus,
   P2PConnectionManagerEvents,
   ConnectionAttemptStrategy
-} from './types.js';
+} from './types';
 import { CryptoService } from '../crypto';
 
 interface ActiveConnection extends P2PConnection {
@@ -140,6 +140,7 @@ export class P2PConnectionManager extends EventEmitter {
         return await this.attemptDirectConnection(peer);
       } catch (error) {
         console.warn(`Direct connection to ${peerId} failed:`, error);
+        this.stats.connectionErrors++;
       }
     }
 
@@ -153,6 +154,7 @@ export class P2PConnectionManager extends EventEmitter {
       console.log(`🔧 WebRTC fallback for ${peerId} not yet implemented`);
     }
 
+    this.stats.connectionErrors++;
     throw new Error(`Failed to establish connection to peer ${peerId}`);
   }
 

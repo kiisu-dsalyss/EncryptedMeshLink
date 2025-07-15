@@ -15,7 +15,7 @@ describe('P2PConnectionManager', () => {
   let mockCrypto: jest.Mocked<CryptoService>;
   
   const testConfig: P2PConnectionConfig = {
-    localPort: 8081, // Use different port for testing
+    localPort: 0, // Use port 0 to let the system assign a free port
     enableTcp: true,
     enableWebSocket: false, // Disable WebSocket for simpler testing
     enableWebRTC: false,

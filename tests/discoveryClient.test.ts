@@ -121,12 +121,12 @@ describe('DiscoveryClient', () => {
 
   describe('discoverPeers', () => {
     it('should discover peers successfully', async () => {
-      const mockPeers: DiscoveredPeer[] = [
+      const mockPeers = [
         {
-          stationId: 'peer-station-001',
-          encryptedContactInfo: 'encrypted-contact-data',
-          publicKey: '-----BEGIN PUBLIC KEY-----\nMOCK_KEY\n-----END PUBLIC KEY-----',
-          lastSeen: Date.now()
+          station_id: 'peer-station-001',
+          encrypted_contact_info: 'encrypted-contact-data',
+          public_key: '-----BEGIN PUBLIC KEY-----\nMOCK_KEY\n-----END PUBLIC KEY-----',
+          last_seen: Date.now()
         }
       ];
 

@@ -78,7 +78,7 @@ describe('TransportNodeSerial', () => {
     });
 
     test('throws error when no port found', async () => {
-      mockFindPort.mockResolvedValue(null);
+      mockFindPort.mockRejectedValue(new Error('No Meshtastic device found'));
 
       await expect(TransportNodeSerial.create()).rejects.toThrow('No Meshtastic device found');
     });

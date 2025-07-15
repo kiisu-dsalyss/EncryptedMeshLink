@@ -277,7 +277,7 @@ export class DiscoveryClient {
           });
           clearTimeout(timeoutId);
           
-          const data = await response.json();
+          const data = await response.json() as any;
           
           // Handle different response formats
           const ip = data.ip || data.origin || data.query;
@@ -322,13 +322,13 @@ export class DiscoveryClient {
 
     try {
       const response = await fetch(url, options);
-      const data = await response.json();
+      const data = await response.json() as any;
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${data.error || response.statusText}`);
       }
       
-      return data;
+      return data as DiscoveryResponse;
     } catch (error: any) {
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${this.config.discovery.timeout}s`);

@@ -48,7 +48,7 @@ describe('RelayHandler', () => {
     const mockPacket = { from: 456, to: myNodeNum };
 
     test('relays message to target by numeric ID', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, '789', 'Hello Bob!');
 
@@ -63,7 +63,7 @@ describe('RelayHandler', () => {
     });
 
     test('relays message to target by long name', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, 'bob', 'Hello there!');
 
@@ -78,7 +78,7 @@ describe('RelayHandler', () => {
     });
 
     test('relays message to target by short name', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, 'charlie', 'Test message');
 
@@ -94,7 +94,7 @@ describe('RelayHandler', () => {
 
     test('uses fallback name when sender has no user info', async () => {
       const unknownPacket = { from: 555, to: myNodeNum };
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(unknownPacket, '789', 'Anonymous message');
 
@@ -115,7 +115,7 @@ describe('RelayHandler', () => {
       });
       
       const davePacket = { from: 111, to: myNodeNum };
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(davePacket, '789', 'Short name test');
 
@@ -126,7 +126,7 @@ describe('RelayHandler', () => {
     });
 
     test('handles target not found by ID', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, '9999', 'Message to nowhere');
 
@@ -138,7 +138,7 @@ describe('RelayHandler', () => {
     });
 
     test('handles target not found by name', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, 'unknown', 'Message to nobody');
 
@@ -150,7 +150,7 @@ describe('RelayHandler', () => {
     });
 
     test('handles case-insensitive name matching', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, 'alice', 'Case test');
 
@@ -171,7 +171,7 @@ describe('RelayHandler', () => {
         lastSeen: new Date(),
       });
 
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, 'alice', 'Ambiguous test');
 
@@ -195,7 +195,7 @@ describe('RelayHandler', () => {
 
     test('handles confirmation failure gracefully', async () => {
       mockDevice.sendText
-        .mockResolvedValueOnce(undefined) // First call succeeds (relay)
+        .mockResolvedValueOnce(123) // First call succeeds (relay)
         .mockRejectedValueOnce(new Error('Confirmation failed')); // Second call fails
 
       // Should not throw, just log error
@@ -212,7 +212,7 @@ describe('RelayHandler', () => {
         lastSeen: new Date(),
       });
 
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
 
       await relayHandler.handleRelayMessage(mockPacket, '888', 'No long name test');
 
@@ -225,7 +225,7 @@ describe('RelayHandler', () => {
 
   describe('handleNodesRequest', () => {
     test('lists available nodes excluding own node', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
       const mockPacket = { from: 777 }; // Use different sender ID
 
       await relayHandler.handleNodesRequest(mockPacket);
@@ -245,7 +245,7 @@ describe('RelayHandler', () => {
       }]]);
       
       const emptyHandler = new RelayHandler(mockDevice, emptyNodes, myNodeNum);
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
       const mockPacket = { from: 456 };
 
       await emptyHandler.handleNodesRequest(mockPacket);
@@ -262,7 +262,7 @@ describe('RelayHandler', () => {
         lastSeen: new Date(),
       });
 
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
       const mockPacket = { from: 456 };
 
       await relayHandler.handleNodesRequest(mockPacket);
@@ -275,7 +275,7 @@ describe('RelayHandler', () => {
 
     test('handles no myNodeNum set', async () => {
       const handlerWithoutMyNode = new RelayHandler(mockDevice, knownNodes);
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
       const mockPacket = { from: 456 };
 
       await handlerWithoutMyNode.handleNodesRequest(mockPacket);
@@ -290,7 +290,7 @@ describe('RelayHandler', () => {
 
   describe('handleEchoMessage', () => {
     test('sends instructions instead of echo', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
       const mockPacket = { from: 456 };
 
       await relayHandler.handleEchoMessage(mockPacket);
@@ -304,7 +304,7 @@ describe('RelayHandler', () => {
 
   describe('sendInstructions', () => {
     test('sends bot instructions successfully', async () => {
-      mockDevice.sendText.mockResolvedValue(undefined);
+      mockDevice.sendText.mockResolvedValue(123);
       const mockPacket = { from: 456 };
 
       await relayHandler.sendInstructions(mockPacket);

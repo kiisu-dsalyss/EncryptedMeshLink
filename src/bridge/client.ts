@@ -318,12 +318,12 @@ export class BridgeClient extends EventEmitter {
   private setupMessageHandlers(): void {
     this.transport.onMessage(MessageType.USER_MESSAGE, async (message) => {
       this.emit('message', message);
-      this.emit('userMessage', 
-        message.routing.fromNode, 
-        message.routing.toNode, 
-        message.payload.data,
-        message.routing.fromStation
-      );
+      this.emit('userMessage', {
+        fromStation: message.routing.fromStation,
+        fromNode: message.routing.fromNode, 
+        toNode: message.routing.toNode, 
+        message: message.payload.data
+      });
       
       // Send ack if required
       if (message.delivery.requiresAck) {

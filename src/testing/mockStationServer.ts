@@ -26,7 +26,7 @@ const MOCK_STATION_CONFIG = {
     // Gateway node - represents the "Meshtastic device" of this mock station
     gatewayNode: {
         nodeId: 3000,
-        nodeName: 'Remote Gateway',
+        nodeName: 'rGateway',
         shortName: 'RGW',
         hwModel: 'HELTEC_V3',
         role: 'CLIENT'
@@ -35,21 +35,21 @@ const MOCK_STATION_CONFIG = {
     nodes: [
         {
             nodeId: 3001,
-            nodeName: 'Remote Alpha',
+            nodeName: 'rAlpha',
             autoRespond: true,
             responseDelay: 800,
             responseMessage: 'Hello from {nodeName}! You said: {originalMessage}'
         },
         {
             nodeId: 3002,
-            nodeName: 'Remote Beta',
+            nodeName: 'rBeta',
             autoRespond: true,
             responseDelay: 1200,
             responseMessage: 'Beta node received: {originalMessage}'
         },
         {
             nodeId: 3003,
-            nodeName: 'Remote Gamma',
+            nodeName: 'rGamma',
             autoRespond: true,
             responseDelay: 500,
             responseMessage: 'Quick response from Gamma: {originalMessage}'
@@ -245,6 +245,59 @@ class MockStationServer {
                 console.log(`📤 Sent gateway node + ${MOCK_STATION_CONFIG.nodes.length} mesh nodes to ${fromStation}`);
             });
 
+            // Set up user message handler for relay messages
+            // Using destructuring to avoid parameter order issues
+            this.bridgeClient.on('userMessage', async ({ fromStation, fromNode, toNode, message }: {
+                fromStation: string;
+                fromNode: number;
+                toNode: number;
+                message: string;
+            }) => {
+                console.log(`📨 Received relay message from ${fromStation}:${fromNode} to ${toNode}: "${message}"`);
+                
+                // Convert toNode number to node name
+                const targetNodeInfo = MOCK_STATION_CONFIG.nodes.find(node => node.nodeId === toNode) ||
+                    (MOCK_STATION_CONFIG.gatewayNode.nodeId === toNode ? MOCK_STATION_CONFIG.gatewayNode : null);
+                
+                if (!targetNodeInfo) {
+                    console.log(`❌ Target node ${toNode} not found on station ${MOCK_STATION_CONFIG.stationId}`);
+                    return;
+                }
+                
+                const targetNodeName = targetNodeInfo.nodeName;
+                
+                console.log(`✅ Found target node ${targetNodeName} (ID: ${toNode}), delivering message...`);
+                
+                // Check if this node auto-responds (only mesh nodes auto-respond)
+                const meshNode = MOCK_STATION_CONFIG.nodes.find(node => node.nodeId === toNode);
+                const shouldAutoRespond = meshNode?.autoRespond || false;
+                
+                if (shouldAutoRespond) {
+                    const response = `Auto-reply from ${targetNodeName}: Got your message "${message}"`;
+                    console.log(`🤖 ${targetNodeName} auto-responding: "${response}"`);
+                    
+                    // Send response back through bridge
+                    // Parameters: targetStation, fromNode, toNode, message
+                    // fromStation = where to send response, toNode = who is responding, fromNode = original sender
+                    if (this.bridgeClient) {
+                        console.log(`🔧 DEBUG: About to call sendUserMessage with parameters:`);
+                        console.log(`   targetStation: "${fromStation}"`);
+                        console.log(`   fromNode: ${toNode}`);
+                        console.log(`   toNode: ${fromNode}`);
+                        console.log(`   message: "${response}"`);
+                        console.log(`🔧 DEBUG: Calling bridgeClient.sendUserMessage now...`);
+                        try {
+                            await this.bridgeClient.sendUserMessage(fromStation, toNode, fromNode, response);
+                            console.log(`✅ DEBUG: sendUserMessage completed successfully`);
+                        } catch (error) {
+                            console.error(`❌ DEBUG: sendUserMessage failed:`, error);
+                        }
+                    }
+                } else {
+                    console.log(`📝 ${targetNodeName} received message but does not auto-respond`);
+                }
+            });
+
             // Register gateway node first (represents the "Meshtastic device")
             console.log('📋 Registering gateway node...');
             this.nodeRegistry.registerLocalNode(
@@ -293,6 +346,35 @@ class MockStationServer {
             await this.stop();
             throw error;
         }
+    }
+
+    /**
+     * Find a node by name in our mock station
+     */
+    private findNodeByName(nodeName: string): any | null {
+        // Check gateway node
+        if (MOCK_STATION_CONFIG.gatewayNode.nodeName.toLowerCase() === nodeName.toLowerCase()) {
+            return {
+                nodeId: MOCK_STATION_CONFIG.gatewayNode.nodeId.toString(),
+                nodeName: MOCK_STATION_CONFIG.gatewayNode.nodeName,
+                autoRespond: false // Gateway doesn't auto-respond
+            };
+        }
+
+        // Check mesh nodes
+        const meshNode = MOCK_STATION_CONFIG.nodes.find(node => 
+            node.nodeName.toLowerCase() === nodeName.toLowerCase()
+        );
+        
+        if (meshNode) {
+            return {
+                nodeId: meshNode.nodeId.toString(),
+                nodeName: meshNode.nodeName,
+                autoRespond: meshNode.autoRespond
+            };
+        }
+
+        return null;
     }
 
     public async stop(): Promise<void> {

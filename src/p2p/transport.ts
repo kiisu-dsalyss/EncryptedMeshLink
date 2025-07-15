@@ -6,7 +6,7 @@
 import { EventEmitter } from 'events';
 import { P2PConnectionManager } from './connectionManager';
 import { P2PConnectionConfig, PeerInfo, P2PMessage, P2PConnectionStats } from './types';
-import { BridgeMessage, serializeBridgeMessage, deserializeBridgeMessage } from '../bridge/protocol';
+import { BridgeMessage, serializeBridgeMessage, deserializeBridgeMessage, createBridgeMessage, MessageType, MessagePriority } from '../bridge/protocol';
 import { CryptoService } from '../crypto';
 import { DiscoveryClient } from '../discoveryClient';
 
@@ -181,15 +181,22 @@ export class P2PTransport extends EventEmitter {
    * Send an ACK message for a received bridge message
    */
   async sendAck(originalMessage: BridgeMessage, ackMessage: any): Promise<void> {
-    // Create ACK as a bridge message and send via normal sendMessage
-    const ackBridgeMessage = {
-      ...ackMessage,
-      routing: {
-        fromStation: this.config.stationId,
-        toStation: originalMessage.routing.fromStation,
-        messageId: ackMessage.messageId || 'ack-' + Date.now()
+    // Create ACK as a proper bridge message with ACK payload
+    const ackBridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      originalMessage.routing.fromStation,
+      0, // fromNode - use 0 for station-level ACK
+      0, // toNode - use 0 for station-level ACK
+      MessageType.ACK,
+      JSON.stringify(ackMessage), // Send the actual ACK data as payload
+      {
+        priority: MessagePriority.HIGH,
+        ttl: 300, // 5 minutes for ACKs
+        requiresAck: false, // Don't ACK the ACK
+        retryCount: 0,
+        maxRetries: 2
       }
-    } as BridgeMessage;
+    );
 
     await this.sendMessage(ackBridgeMessage);
   }
@@ -221,7 +228,8 @@ export class P2PTransport extends EventEmitter {
     // Send via connection manager
     await this.connectionManager.sendMessage(actualConnectionId, p2pMessage);
     
-    console.log(`📤 Sent bridge message ${message.messageId} to ${targetStation} via ${actualConnectionId}`);
+    console.log(`� DEBUG: message object before logging: ${JSON.stringify({messageId: message.messageId, hasMessage: !!message, messageKeys: Object.keys(message)})}`);
+    console.log(`�📤 Sent bridge message ${message.messageId} to ${targetStation} via ${actualConnectionId}`);
   }
 
   private async ensureConnection(targetStation: string): Promise<void> {

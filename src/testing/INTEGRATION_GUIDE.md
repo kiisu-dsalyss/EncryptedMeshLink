@@ -80,17 +80,17 @@ Hello from Remote Alpha! You said: Hello from my radio!
 
 ## Available Test Nodes
 
-### Node 3001 - Remote Alpha
+### Node 3001 - rAlpha
 - **Response Pattern**: `Hello from {nodeName}! You said: {originalMessage}`
 - **Delay**: 800ms
-- **Example**: Send "Test message" → Receive "Hello from Remote Alpha! You said: Test message"
+- **Example**: Send "Test message" → Receive "Hello from rAlpha! You said: Test message"
 
-### Node 3002 - Remote Beta  
+### Node 3002 - rBeta  
 - **Response Pattern**: `Beta node received: {originalMessage}`
 - **Delay**: 1200ms
 - **Example**: Send "Hi Beta" → Receive "Beta node received: Hi Beta"
 
-### Node 3003 - Remote Gamma
+### Node 3003 - rGamma
 - **Response Pattern**: `Quick response from Gamma: {originalMessage}` 
 - **Delay**: 500ms (fastest)
 - **Example**: Send "Speed test" → Receive "Quick response from Gamma: Speed test"

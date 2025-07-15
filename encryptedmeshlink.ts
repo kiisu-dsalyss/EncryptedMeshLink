@@ -7,6 +7,13 @@ import { ConfigCLI } from "./src/configCLI";
 import { CryptoService } from "./src/crypto";
 
 async function main() {
+  // Check for local testing flag
+  const args = process.argv.slice(2);
+  if (args.includes('--local-testing')) {
+    process.env.EML_LOCAL_TESTING = 'true';
+    console.log("🏠 Local testing mode enabled");
+  }
+
   console.log("🔍 Looking for Meshtastic device...");
   
   try {
@@ -198,6 +205,12 @@ async function handleCLICommands() {
   }
 
   const command = args[0];
+  
+  // Allow flags to pass through to main application
+  if (command.startsWith('--')) {
+    return false;
+  }
+  
   const cli = new ConfigCLI();
 
   switch (command) {
@@ -269,6 +282,7 @@ async function handleCLICommands() {
       console.log('==============================================');
       console.log('\nUsage:');
       console.log('  npm run encryptedmeshlink                    - Start EncryptedMeshLink relay');
+      console.log('  npm run encryptedmeshlink --local-testing    - Start with local testing mode');
       console.log('  npm run encryptedmeshlink config init ...    - Initialize station configuration');
       console.log('  npm run encryptedmeshlink config show        - Show current configuration');
       console.log('  npm run encryptedmeshlink config validate    - Validate configuration');

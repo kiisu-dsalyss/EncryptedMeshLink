@@ -291,6 +291,12 @@ export class DiscoveryClient {
   }
 
   private async getPublicIP(): Promise<string> {
+    // Check if we're in local testing mode
+    if (process.env.EML_LOCAL_TESTING === 'true') {
+      console.log('🏠 Local testing mode: using 127.0.0.1');
+      return '127.0.0.1';
+    }
+
     try {
       // Try multiple IP detection services
       const services = [

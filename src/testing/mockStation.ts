@@ -153,6 +153,8 @@ export class MockStation extends EventEmitter {
                 return await this.handleUserMessage(message);
             case MessageType.COMMAND:
                 return await this.handleCommandMessage(message);
+            case MessageType.SYSTEM:
+                return await this.handleSystemMessage(message);
             case MessageType.HEARTBEAT:
                 return await this.handleHeartbeat(message);
             default:
@@ -195,6 +197,24 @@ export class MockStation extends EventEmitter {
                 return this.createNodeListResponse(message);
             default:
                 return this.createErrorResponse(message, `Unknown command: ${command}`);
+        }
+    }
+
+    private async handleSystemMessage(message: BridgeMessage): Promise<BridgeMessage | null> {
+        try {
+            const systemData = JSON.parse(message.payload.data);
+            console.log(`[MockStation ${this.config.stationId}] Received system message:`, systemData.type);
+            
+            switch (systemData.type) {
+                case 'NODE_LIST_REQUEST':
+                    return await this.createNodeDiscoveryResponse(message);
+                default:
+                    console.log(`[MockStation ${this.config.stationId}] Unhandled system message type: ${systemData.type}`);
+                    return null;
+            }
+        } catch (error) {
+            console.error(`[MockStation ${this.config.stationId}] Error handling system message:`, error);
+            return null;
         }
     }
 
@@ -303,6 +323,35 @@ export class MockStation extends EventEmitter {
             JSON.stringify({
                 command: 'nodes',
                 result: { nodes: nodeList }
+            }),
+            { priority: MessagePriority.NORMAL, ttl: 300 }
+        );
+    }
+
+    private createNodeDiscoveryResponse(message: BridgeMessage): BridgeMessage {
+        // Create node discovery response for system message
+        const nodeList = this.config.nodes.map(node => ({
+            nodeId: node.nodeId,
+            nodeName: node.nodeName,
+            lastSeen: Date.now(),
+            isOnline: true,
+            stationId: this.config.stationId
+        }));
+
+        console.log(`[MockStation ${this.config.stationId}] Sending node discovery response with ${nodeList.length} nodes`);
+
+        return createBridgeMessage(
+            this.config.stationId,
+            message.routing.fromStation,
+            0,
+            0,
+            MessageType.NODE_DISCOVERY,
+            JSON.stringify({
+                type: 'NODE_LIST_RESPONSE',
+                requestId: JSON.parse(message.payload.data).requestId,
+                nodes: nodeList,
+                stationId: this.config.stationId,
+                timestamp: Date.now()
             }),
             { priority: MessagePriority.NORMAL, ttl: 300 }
         );

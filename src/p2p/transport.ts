@@ -269,19 +269,32 @@ export class P2PTransport extends EventEmitter {
       
       for (const peer of peers) {
         if (peer.stationId === targetStation) {
-          // TODO: Decrypt the contact info to get actual host/port
-          // For now, we'll need to add a method to decrypt contact info
-          console.warn(`🔧 Contact info decryption not yet implemented for ${targetStation}`);
-          
-          // Placeholder - in real implementation, decrypt peer.encryptedContactInfo
-          return {
-            stationId: peer.stationId,
-            host: '127.0.0.1', // Placeholder
-            port: 8080, // Placeholder  
-            publicKey: peer.publicKey,
-            lastSeen: peer.lastSeen,
-            connectionType: 'tcp' // Default to TCP for now
-          };
+          try {
+            // Decrypt the contact info to get actual host/port
+            const contactInfo = await this.discoveryClient.decryptContactInfo(peer.encryptedContactInfo);
+            console.log(`� P2P using decrypted contact info for ${targetStation}: ${contactInfo.ip}:${contactInfo.port}`);
+            
+            return {
+              stationId: peer.stationId,
+              host: contactInfo.ip,
+              port: contactInfo.port,
+              publicKey: peer.publicKey,
+              lastSeen: peer.lastSeen,
+              connectionType: 'tcp'
+            };
+          } catch (error) {
+            console.error(`Failed to decrypt contact info for ${targetStation}:`, error);
+            // Fall back to localhost for local testing
+            console.warn(`🔧 Falling back to localhost for ${targetStation}`);
+            return {
+              stationId: peer.stationId,
+              host: '127.0.0.1',
+              port: 8080,
+              publicKey: peer.publicKey,
+              lastSeen: peer.lastSeen,
+              connectionType: 'tcp'
+            };
+          }
         }
       }
 

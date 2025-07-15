@@ -6,6 +6,9 @@
  * Registers with discovery service like a real remote station
  */
 
+// Enable local testing mode for IP detection
+process.env.EML_LOCAL_TESTING = 'true';
+
 import { MockStation } from './mockStation';
 import { DiscoveryClient } from '../discoveryClient';
 import { StationConfig } from '../config/types';

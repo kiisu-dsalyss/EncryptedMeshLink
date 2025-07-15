@@ -184,10 +184,23 @@ export class DiscoveryClient {
         return [];
       }
 
-      const peers: DiscoveredPeer[] = response.data.peers || [];
+      console.log(`🔍 Raw discovery response:`, JSON.stringify(response.data, null, 2));
+      const rawPeers = response.data.peers || [];
+      console.log(`🔍 Raw peers:`, rawPeers);
+      
+      // Map the discovery service format to our interface
+      const peers: DiscoveredPeer[] = rawPeers.map((rawPeer: any) => ({
+        stationId: rawPeer.station_id,
+        encryptedContactInfo: rawPeer.encrypted_contact_info,
+        publicKey: rawPeer.public_key,
+        lastSeen: rawPeer.last_seen
+      }));
+      
+      console.log(`🔍 Mapped peers:`, peers);
       
       // Filter out ourselves
       const remotePeers = peers.filter(peer => peer.stationId !== this.config.stationId);
+      console.log(`🔍 Remote peers after filtering:`, remotePeers);
       
       // Process peer changes
       this.processPeerChanges(remotePeers);
@@ -225,7 +238,8 @@ export class DiscoveryClient {
   async decryptContactInfo(encryptedData: string): Promise<ContactInfo> {
     // Use proper AES decryption via the crypto module
     const { cryptoService } = await import('./cryptoModular');
-    const discoveryKey = this.config.keys.privateKey;
+    // Use the same shared discovery key for decryption
+    const discoveryKey = await this.getSharedDiscoveryKey();
     const decrypted = await cryptoService.decryptContactInfo(encryptedData, discoveryKey);
     
     // Convert crypto ContactInfo back to discovery ContactInfo format
@@ -270,11 +284,19 @@ export class DiscoveryClient {
     };
     
     const { cryptoService } = await import('./cryptoModular');
-    const discoveryKey = this.config.keys.privateKey;
+    // Use a shared discovery key derived from the service URL for symmetric encryption
+    // This ensures all stations using the same discovery service can decrypt each other's contact info
+    const discoveryKey = await this.getSharedDiscoveryKey();
     return cryptoService.encryptContactInfo(cryptoContactInfo, discoveryKey);
   }
 
   private async getPublicIP(): Promise<string> {
+    // Check if we're in local testing mode
+    if (process.env.EML_LOCAL_TESTING === 'true') {
+      console.log('🏠 Local testing mode: using 127.0.0.1');
+      return '127.0.0.1';
+    }
+
     try {
       // Try multiple IP detection services
       const services = [
@@ -322,6 +344,16 @@ export class DiscoveryClient {
   private async makeRequest(method: string, path: string, body?: any): Promise<DiscoveryResponse> {
     const url = `${this.config.discovery.serviceUrl}${path}`;
     const timeout = this.config.discovery.timeout * 1000;
+    
+    console.log(`🔍 Making ${method} request to: ${url}`);
+    console.log(`🔍 Configured timeout: ${timeout}ms (${this.config.discovery.timeout}s)`);
+
+    // Create manual AbortController for better timeout control
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`⏰ Request timeout triggered after ${timeout}ms`);
+      controller.abort();
+    }, timeout);
 
     const options: RequestInit = {
       method,
@@ -329,7 +361,9 @@ export class DiscoveryClient {
         'Content-Type': 'application/json',
         'User-Agent': `EncryptedMeshLink/1.0.0 (Station: ${this.config.stationId})`
       },
-      signal: AbortSignal.timeout(timeout)
+      signal: controller.signal,
+      // Add explicit keepalive setting
+      keepalive: false
     };
 
     if (body) {
@@ -337,7 +371,10 @@ export class DiscoveryClient {
     }
 
     try {
+      console.log(`🌐 Starting fetch request...`);
       const response = await fetch(url, options);
+      clearTimeout(timeoutId);
+      console.log(`✅ Fetch completed successfully, status: ${response.status}`);
       
       try {
         const data = await response.json() as any;
@@ -355,6 +392,14 @@ export class DiscoveryClient {
         throw new Error(`Invalid JSON response from discovery service`);
       }
     } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.log(`❌ Fetch error:`, error.message);
+      console.log(`❌ Error name:`, error.name);
+      console.log(`❌ Error code:`, error.code);
+      if (error.cause) {
+        console.log(`❌ Error cause:`, error.cause);
+      }
+      
       if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${this.config.discovery.timeout}s`);
       }
@@ -382,6 +427,17 @@ export class DiscoveryClient {
 
   private startPeerDiscovery(): void {
     const intervalMs = this.config.discovery.checkInterval * 1000;
+    
+    // Run immediate discovery on startup
+    setTimeout(async () => {
+      try {
+        console.log(`🔍 Running immediate peer discovery...`);
+        await this.discoverPeers();
+      } catch (error) {
+        console.warn(`⚠️ Initial peer discovery failed:`, error);
+        this.handleError(new Error(`Initial peer discovery failed: ${error}`));
+      }
+    }, 2000); // Run after 2 seconds to allow registration to complete
     
     this.discoveryInterval = setInterval(async () => {
       try {
@@ -432,5 +488,21 @@ export class DiscoveryClient {
     if (this.onError) {
       this.onError(error);
     }
+  }
+
+  /**
+   * Generate a shared discovery key based on the discovery service URL
+   * This ensures all stations using the same discovery service can decrypt each other's contact info
+   */
+  private async getSharedDiscoveryKey(): Promise<string> {
+    const crypto = await import('crypto');
+    // Create a deterministic key from the discovery service URL
+    // This means all stations using the same discovery service will have the same key
+    const baseKey = `discovery-${this.config.discovery.serviceUrl}`;
+    
+    // Use a hash to create a consistent key
+    const hash = crypto.createHash('sha256');
+    hash.update(baseKey);
+    return hash.digest('hex');
   }
 }

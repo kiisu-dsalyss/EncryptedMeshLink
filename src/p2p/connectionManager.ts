@@ -388,7 +388,25 @@ export class P2PConnectionManager extends EventEmitter {
 
   private handleIncomingTcpConnection(socket: net.Socket): void {
     console.log(`📥 Incoming TCP connection from ${socket.remoteAddress}:${socket.remotePort}`);
-    // TODO: Implement incoming connection authentication
+    
+    // Create a temporary peer ID from the remote address
+    // In a real implementation, this would come from an authentication handshake
+    const tempPeerId = `incoming-${socket.remoteAddress}:${socket.remotePort}`;
+    
+    // Create and setup the connection
+    const connection = this.createConnection(tempPeerId, socket, 'tcp');
+    this.setupConnectionHandlers(connection);
+    
+    // Mark as authenticated for now (TODO: implement proper auth)
+    connection.authenticated = true;
+    connection.status = P2PConnectionStatus.AUTHENTICATED;
+    
+    this.connections.set(tempPeerId, connection);
+    console.log(`✅ Setup incoming connection as ${tempPeerId}`);
+    this.emit('peer-connected', tempPeerId, connection);
+    
+    // TODO: For proper P2P we need to identify the actual station ID from authentication
+    // For now we'll emit a generic event that the transport layer can handle
   }
 
   private handleIncomingWebSocketConnection(ws: WebSocket, req: any): void {

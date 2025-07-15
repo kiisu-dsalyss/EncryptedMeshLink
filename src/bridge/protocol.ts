@@ -182,9 +182,12 @@ export function createBridgeMessage(
   data: string,
   options: Partial<BridgeMessage['delivery']> = {}
 ): BridgeMessage {
+  const messageId = randomUUID();
+  console.log(`🔧 DEBUG: createBridgeMessage generated messageId: ${messageId}`);
+  
   return {
     version: PROTOCOL_VERSION,
-    messageId: randomUUID(),
+    messageId: messageId,
     timestamp: Date.now(),
     
     routing: {
@@ -322,6 +325,14 @@ export function deserializeBridgeMessage(json: string): BridgeMessage {
   const parsed = JSON.parse(json);
   
   if (!validateBridgeMessage(parsed)) {
+    console.error('🚫 Bridge message validation failed:');
+    console.error('   Raw JSON:', json.substring(0, 200));
+    console.error('   Parsed object:', JSON.stringify(parsed, null, 2));
+    console.error('   MessageId:', parsed.messageId);
+    console.error('   Version:', parsed.version);
+    console.error('   Routing:', parsed.routing);
+    console.error('   Payload:', parsed.payload);
+    console.error('   Delivery:', parsed.delivery);
     throw new Error('Invalid bridge message format');
   }
   

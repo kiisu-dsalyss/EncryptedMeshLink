@@ -4,6 +4,12 @@
  */
 
 export async function getPublicIP(): Promise<string> {
+  // Check for local testing mode
+  if (process.env.EML_LOCAL_TESTING === 'true' || process.env.NODE_ENV === 'test') {
+    console.log('🏠 Local testing mode: using 127.0.0.1');
+    return '127.0.0.1';
+  }
+
   try {
     // Try multiple IP detection services
     const services = [

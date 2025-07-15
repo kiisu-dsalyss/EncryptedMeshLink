@@ -7,6 +7,13 @@ import { ConfigCLI } from "./src/configCLI";
 import { CryptoService } from "./src/crypto";
 
 async function main() {
+  // Check for local testing flag
+  const args = process.argv.slice(2);
+  if (args.includes('--local-testing')) {
+    process.env.EML_LOCAL_TESTING = 'true';
+    console.log("🏠 Local testing mode enabled");
+  }
+
   console.log("🔍 Looking for Meshtastic device...");
   
   try {
@@ -125,8 +132,25 @@ async function main() {
     }
 
     // Give some time for initial configuration
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log("🔗 EncryptedMeshLink station ready! Send a message to test bridging!");
+      
+      // Fallback: Initialize bridge if onMyNodeInfo hasn't fired yet
+      if (!relayHandler) {
+        console.log("🔄 Node info not received, initializing bridge with fallback...");
+        
+        // Use a default node number or undefined - the relay handler can handle this
+        const fallbackNodeNum = 1000000000; // Temporary placeholder
+        
+        try {
+          relayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, fallbackNodeNum);
+          await relayHandler.initializeBridge();
+          console.log("🌉 Internet bridge services started successfully (fallback mode)");
+          await relayHandler.registerLocalNodes();
+        } catch (bridgeError) {
+          console.warn("⚠️ Fallback bridge initialization failed, running in local-only mode:", bridgeError);
+        }
+      }
     }, 2000);
 
     // Graceful shutdown handling
@@ -198,6 +222,12 @@ async function handleCLICommands() {
   }
 
   const command = args[0];
+  
+  // Allow flags to pass through to main application
+  if (command.startsWith('--')) {
+    return false;
+  }
+  
   const cli = new ConfigCLI();
 
   switch (command) {
@@ -269,6 +299,7 @@ async function handleCLICommands() {
       console.log('==============================================');
       console.log('\nUsage:');
       console.log('  npm run encryptedmeshlink                    - Start EncryptedMeshLink relay');
+      console.log('  npm run encryptedmeshlink --local-testing    - Start with local testing mode');
       console.log('  npm run encryptedmeshlink config init ...    - Initialize station configuration');
       console.log('  npm run encryptedmeshlink config show        - Show current configuration');
       console.log('  npm run encryptedmeshlink config validate    - Validate configuration');

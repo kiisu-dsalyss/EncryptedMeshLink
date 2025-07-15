@@ -6,7 +6,7 @@
 import { EventEmitter } from 'events';
 import { P2PConnectionManager } from './connectionManager';
 import { P2PConnectionConfig, PeerInfo, P2PMessage, P2PConnectionStats } from './types';
-import { BridgeMessage, serializeBridgeMessage, deserializeBridgeMessage } from '../bridge/protocol';
+import { BridgeMessage, serializeBridgeMessage, deserializeBridgeMessage, createBridgeMessage, MessageType, MessagePriority } from '../bridge/protocol';
 import { CryptoService } from '../crypto';
 import { DiscoveryClient } from '../discoveryClient';
 
@@ -38,6 +38,9 @@ export class P2PTransport extends EventEmitter {
   private stats: P2PTransportStats;
   private messageHandlers: Map<string, (message: BridgeMessage) => Promise<void>>;
   private pendingConnections: Map<string, Promise<void>> = new Map();
+  
+  // Track mapping from station ID to connection ID for responses
+  private stationToConnectionMap = new Map<string, string>();
 
   constructor(config: P2PTransportConfig, crypto: CryptoService, discoveryClient?: DiscoveryClient) {
     super();
@@ -178,15 +181,22 @@ export class P2PTransport extends EventEmitter {
    * Send an ACK message for a received bridge message
    */
   async sendAck(originalMessage: BridgeMessage, ackMessage: any): Promise<void> {
-    // Create ACK as a bridge message and send via normal sendMessage
-    const ackBridgeMessage = {
-      ...ackMessage,
-      routing: {
-        fromStation: this.config.stationId,
-        toStation: originalMessage.routing.fromStation,
-        messageId: ackMessage.messageId || 'ack-' + Date.now()
+    // Create ACK as a proper bridge message with ACK payload
+    const ackBridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      originalMessage.routing.fromStation,
+      0, // fromNode - use 0 for station-level ACK
+      0, // toNode - use 0 for station-level ACK
+      MessageType.ACK,
+      JSON.stringify(ackMessage), // Send the actual ACK data as payload
+      {
+        priority: MessagePriority.HIGH,
+        ttl: 300, // 5 minutes for ACKs
+        requiresAck: false, // Don't ACK the ACK
+        retryCount: 0,
+        maxRetries: 2
       }
-    } as BridgeMessage;
+    );
 
     await this.sendMessage(ackBridgeMessage);
   }
@@ -212,14 +222,31 @@ export class P2PTransport extends EventEmitter {
       signature: '' // TODO: Add message signing
     };
 
+    // Use mapped connection if available, otherwise use station ID directly
+    const actualConnectionId = this.stationToConnectionMap.get(targetStation) || targetStation;
+
     // Send via connection manager
-    await this.connectionManager.sendMessage(targetStation, p2pMessage);
+    await this.connectionManager.sendMessage(actualConnectionId, p2pMessage);
     
-    console.log(`📤 Sent bridge message ${message.messageId} to ${targetStation}`);
+    console.log(`� DEBUG: message object before logging: ${JSON.stringify({messageId: message.messageId, hasMessage: !!message, messageKeys: Object.keys(message)})}`);
+    console.log(`�📤 Sent bridge message ${message.messageId} to ${targetStation} via ${actualConnectionId}`);
   }
 
   private async ensureConnection(targetStation: string): Promise<void> {
-    // Check if already connected
+    // Check if we have a mapped connection for this station
+    const mappedConnectionId = this.stationToConnectionMap.get(targetStation);
+    if (mappedConnectionId) {
+      const connectedPeers = this.connectionManager.getConnectedPeers();
+      if (connectedPeers.includes(mappedConnectionId)) {
+        console.log(`🗺️ Using mapped connection ${mappedConnectionId} for station ${targetStation}`);
+        return;
+      } else {
+        // Clean up stale mapping
+        this.stationToConnectionMap.delete(targetStation);
+      }
+    }
+
+    // Check if already connected by station ID
     const connectedPeers = this.connectionManager.getConnectedPeers();
     if (connectedPeers.includes(targetStation)) {
       return;
@@ -269,19 +296,32 @@ export class P2PTransport extends EventEmitter {
       
       for (const peer of peers) {
         if (peer.stationId === targetStation) {
-          // TODO: Decrypt the contact info to get actual host/port
-          // For now, we'll need to add a method to decrypt contact info
-          console.warn(`🔧 Contact info decryption not yet implemented for ${targetStation}`);
-          
-          // Placeholder - in real implementation, decrypt peer.encryptedContactInfo
-          return {
-            stationId: peer.stationId,
-            host: '127.0.0.1', // Placeholder
-            port: 8080, // Placeholder  
-            publicKey: peer.publicKey,
-            lastSeen: peer.lastSeen,
-            connectionType: 'tcp' // Default to TCP for now
-          };
+          try {
+            // Decrypt the contact info to get actual host/port
+            const contactInfo = await this.discoveryClient.decryptContactInfo(peer.encryptedContactInfo);
+            console.log(`� P2P using decrypted contact info for ${targetStation}: ${contactInfo.ip}:${contactInfo.port}`);
+            
+            return {
+              stationId: peer.stationId,
+              host: contactInfo.ip,
+              port: contactInfo.port,
+              publicKey: peer.publicKey,
+              lastSeen: peer.lastSeen,
+              connectionType: 'tcp'
+            };
+          } catch (error) {
+            console.error(`Failed to decrypt contact info for ${targetStation}:`, error);
+            // Fall back to localhost for local testing
+            console.warn(`🔧 Falling back to localhost for ${targetStation}`);
+            return {
+              stationId: peer.stationId,
+              host: '127.0.0.1',
+              port: 8080,
+              publicKey: peer.publicKey,
+              lastSeen: peer.lastSeen,
+              connectionType: 'tcp'
+            };
+          }
         }
       }
 
@@ -321,6 +361,13 @@ export class P2PTransport extends EventEmitter {
       this.stats.lastActivity = Date.now();
 
       console.log(`📥 Received bridge message ${bridgeMessage.messageId} from ${fromPeer}`);
+
+      // Map the actual station ID to the connection ID for future responses
+      const actualStationId = bridgeMessage.routing.fromStation;
+      if (actualStationId && actualStationId !== this.config.stationId) {
+        this.stationToConnectionMap.set(actualStationId, fromPeer);
+        console.log(`🗺️ Mapped station ${actualStationId} to connection ${fromPeer}`);
+      }
 
       // Route to appropriate handler
       const handler = this.messageHandlers.get(bridgeMessage.payload.type);

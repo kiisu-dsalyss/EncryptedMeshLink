@@ -199,6 +199,51 @@ export class BridgeClient extends EventEmitter {
   }
 
   /**
+   * Send a system message (for internal bridge communication)
+   */
+  async sendSystemMessage(
+    targetStation: string,
+    payload: any,
+    priority: MessagePriority = MessagePriority.NORMAL
+  ): Promise<void> {
+    const bridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      targetStation,
+      0, // System message
+      0, // System message
+      MessageType.SYSTEM,
+      JSON.stringify(payload),
+      { priority }
+    );
+
+    await this.transport.sendMessage(bridgeMessage);
+    console.log(`🌉 Sent system message to ${targetStation}: ${payload.type}`);
+  }
+
+  /**
+   * Broadcast a system message to all known stations
+   */
+  async broadcastSystemMessage(
+    payload: any,
+    priority: MessagePriority = MessagePriority.NORMAL
+  ): Promise<void> {
+    // For now, broadcast to a placeholder "ALL" target
+    // TODO: Implement actual peer discovery and broadcast to known stations
+    const bridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      'ALL', // Broadcast target
+      0, // System message
+      0, // System message
+      MessageType.SYSTEM,
+      JSON.stringify(payload),
+      { priority }
+    );
+
+    await this.transport.sendMessage(bridgeMessage);
+    console.log(`🌉 Broadcast system message: ${payload.type}`);
+  }
+
+  /**
    * Get bridge transport statistics
    */
   getStats(): BridgeTransportStats {

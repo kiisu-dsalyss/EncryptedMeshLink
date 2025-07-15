@@ -51,6 +51,7 @@ export enum MessageType {
   COMMAND = 'command',                     // @instructions, @nodes, etc.
   
   // System messages
+  SYSTEM = 'system',                       // Internal system messages
   HEARTBEAT = 'heartbeat',                 // Station health check
   NODE_DISCOVERY = 'node_discovery',       // Share discovered nodes
   STATION_INFO = 'station_info',           // Station capabilities

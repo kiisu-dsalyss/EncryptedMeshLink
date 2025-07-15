@@ -4,7 +4,7 @@ import { NodeManager } from "./src/nodeManager";
 import { EnhancedRelayHandler } from "./src/enhancedRelayHandler";
 import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
-import { CryptoService } from "./src/crypto/index.js";
+import { CryptoService } from "./src/crypto/index";
 import { parseIntSafe } from "./src/common/parsers";
 import { UpdateScheduler } from "./src/deployment/updateScheduler";
 import * as path from 'path';

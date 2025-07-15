@@ -132,8 +132,25 @@ async function main() {
     }
 
     // Give some time for initial configuration
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log("🔗 EncryptedMeshLink station ready! Send a message to test bridging!");
+      
+      // Fallback: Initialize bridge if onMyNodeInfo hasn't fired yet
+      if (!relayHandler) {
+        console.log("🔄 Node info not received, initializing bridge with fallback...");
+        
+        // Use a default node number or undefined - the relay handler can handle this
+        const fallbackNodeNum = 1000000000; // Temporary placeholder
+        
+        try {
+          relayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, fallbackNodeNum);
+          await relayHandler.initializeBridge();
+          console.log("🌉 Internet bridge services started successfully (fallback mode)");
+          await relayHandler.registerLocalNodes();
+        } catch (bridgeError) {
+          console.warn("⚠️ Fallback bridge initialization failed, running in local-only mode:", bridgeError);
+        }
+      }
     }, 2000);
 
     // Graceful shutdown handling

@@ -23,6 +23,15 @@ const MOCK_STATION_CONFIG = {
     stationName: 'Remote Test Station',
     listenPort: 8900,
     responsePattern: 'echo' as const,
+    // Gateway node - represents the "Meshtastic device" of this mock station
+    gatewayNode: {
+        nodeId: 3000,
+        nodeName: 'Remote Gateway',
+        shortName: 'RGW',
+        hwModel: 'HELTEC_V3',
+        role: 'CLIENT'
+    },
+    // Mesh nodes behind the gateway
     nodes: [
         {
             nodeId: 3001,
@@ -148,7 +157,8 @@ class MockStationServer {
         console.log(`Station ID: ${MOCK_STATION_CONFIG.stationId}`);
         console.log(`Station Name: ${MOCK_STATION_CONFIG.stationName}`);
         console.log(`Listen Port: ${MOCK_STATION_CONFIG.listenPort}`);
-        console.log(`Nodes Available:`);
+        console.log(`Gateway Node: ${MOCK_STATION_CONFIG.gatewayNode.nodeName} (ID: ${MOCK_STATION_CONFIG.gatewayNode.nodeId})`);
+        console.log(`Mesh Nodes Available:`);
         
         for (const node of MOCK_STATION_CONFIG.nodes) {
             console.log(`  - ${node.nodeName} (ID: ${node.nodeId}) - Auto-respond: ${node.autoRespond ? 'Yes' : 'No'}`);
@@ -206,33 +216,59 @@ class MockStationServer {
 
             // Set up node list request handler
             this.bridgeClient.on('nodeListRequest', async (fromStation: string) => {
-                console.log(`📋 Received node list request from ${fromStation}, sending ${MOCK_STATION_CONFIG.nodes.length} mock nodes...`);
+                console.log(`📋 Received node list request from ${fromStation}, sending gateway + ${MOCK_STATION_CONFIG.nodes.length} mesh nodes...`);
                 
-                // Send our mock nodes as a node discovery message
-                const mockNodes = MOCK_STATION_CONFIG.nodes.map(node => ({
-                    nodeId: node.nodeId,
-                    name: node.nodeName,
-                    lastSeen: Date.now(),
-                    signal: -50 // Mock signal strength
-                }));
+                // Include gateway node + mesh nodes in the discovery
+                const allNodes = [
+                    // Gateway node (acts like the "Meshtastic device")
+                    {
+                        nodeId: MOCK_STATION_CONFIG.gatewayNode.nodeId,
+                        name: MOCK_STATION_CONFIG.gatewayNode.nodeName,
+                        lastSeen: Date.now(),
+                        signal: -30, // Stronger signal for gateway
+                        hwModel: MOCK_STATION_CONFIG.gatewayNode.hwModel,
+                        role: MOCK_STATION_CONFIG.gatewayNode.role
+                    },
+                    // Mesh nodes behind the gateway
+                    ...MOCK_STATION_CONFIG.nodes.map(node => ({
+                        nodeId: node.nodeId,
+                        name: node.nodeName,
+                        lastSeen: Date.now(),
+                        signal: -50 // Mock signal strength for mesh nodes
+                    }))
+                ];
 
                 if (this.bridgeClient) {
-                    await this.bridgeClient.sendNodeDiscovery(fromStation, mockNodes);
+                    await this.bridgeClient.sendNodeDiscovery(fromStation, allNodes);
                 }
                 
-                console.log(`📤 Sent ${mockNodes.length} mock nodes to ${fromStation}`);
+                console.log(`📤 Sent gateway node + ${MOCK_STATION_CONFIG.nodes.length} mesh nodes to ${fromStation}`);
             });
 
-            // Register mock nodes with the registry
-            console.log('📋 Registering mock nodes...');
+            // Register gateway node first (represents the "Meshtastic device")
+            console.log('📋 Registering gateway node...');
+            this.nodeRegistry.registerLocalNode(
+                MOCK_STATION_CONFIG.gatewayNode.nodeId.toString(),
+                {
+                    nodeName: MOCK_STATION_CONFIG.gatewayNode.nodeName,
+                    type: 'gateway',
+                    autoRespond: false, // Gateway doesn't auto-respond to messages
+                    description: `Mock gateway node: ${MOCK_STATION_CONFIG.gatewayNode.nodeName}`,
+                    hwModel: MOCK_STATION_CONFIG.gatewayNode.hwModel,
+                    role: MOCK_STATION_CONFIG.gatewayNode.role
+                }
+            );
+
+            // Register mesh nodes behind the gateway
+            console.log('📋 Registering mesh nodes...');
             for (const node of MOCK_STATION_CONFIG.nodes) {
                 this.nodeRegistry.registerLocalNode(
                     node.nodeId.toString(),
                     {
                         nodeName: node.nodeName,
-                        type: 'mock',
+                        type: 'mesh',
                         autoRespond: node.autoRespond,
-                        description: `Mock node: ${node.nodeName}`,
+                        description: `Mock mesh node: ${node.nodeName}`,
                         responseDelay: node.responseDelay,
                         responseMessage: node.responseMessage
                     }
@@ -241,7 +277,9 @@ class MockStationServer {
 
             console.log('\n� Mock station is ready and registered with discovery service!');
             console.log('\n📋 Your main EncryptedMeshLink service should now discover this station');
-            console.log('📋 Remote nodes available for messaging:');
+            console.log('📋 Gateway node available:');
+            console.log(`   - ${MOCK_STATION_CONFIG.stationId}:${MOCK_STATION_CONFIG.gatewayNode.nodeId} (${MOCK_STATION_CONFIG.gatewayNode.nodeName})`);
+            console.log('📋 Mesh nodes available for messaging:');
             for (const node of MOCK_STATION_CONFIG.nodes) {
                 console.log(`   - ${MOCK_STATION_CONFIG.stationId}:${node.nodeId} (${node.nodeName})`);
             }

@@ -38,6 +38,9 @@ export class P2PTransport extends EventEmitter {
   private stats: P2PTransportStats;
   private messageHandlers: Map<string, (message: BridgeMessage) => Promise<void>>;
   private pendingConnections: Map<string, Promise<void>> = new Map();
+  
+  // Track mapping from station ID to connection ID for responses
+  private stationToConnectionMap = new Map<string, string>();
 
   constructor(config: P2PTransportConfig, crypto: CryptoService, discoveryClient?: DiscoveryClient) {
     super();
@@ -212,14 +215,30 @@ export class P2PTransport extends EventEmitter {
       signature: '' // TODO: Add message signing
     };
 
+    // Use mapped connection if available, otherwise use station ID directly
+    const actualConnectionId = this.stationToConnectionMap.get(targetStation) || targetStation;
+
     // Send via connection manager
-    await this.connectionManager.sendMessage(targetStation, p2pMessage);
+    await this.connectionManager.sendMessage(actualConnectionId, p2pMessage);
     
-    console.log(`📤 Sent bridge message ${message.messageId} to ${targetStation}`);
+    console.log(`📤 Sent bridge message ${message.messageId} to ${targetStation} via ${actualConnectionId}`);
   }
 
   private async ensureConnection(targetStation: string): Promise<void> {
-    // Check if already connected
+    // Check if we have a mapped connection for this station
+    const mappedConnectionId = this.stationToConnectionMap.get(targetStation);
+    if (mappedConnectionId) {
+      const connectedPeers = this.connectionManager.getConnectedPeers();
+      if (connectedPeers.includes(mappedConnectionId)) {
+        console.log(`🗺️ Using mapped connection ${mappedConnectionId} for station ${targetStation}`);
+        return;
+      } else {
+        // Clean up stale mapping
+        this.stationToConnectionMap.delete(targetStation);
+      }
+    }
+
+    // Check if already connected by station ID
     const connectedPeers = this.connectionManager.getConnectedPeers();
     if (connectedPeers.includes(targetStation)) {
       return;
@@ -334,6 +353,13 @@ export class P2PTransport extends EventEmitter {
       this.stats.lastActivity = Date.now();
 
       console.log(`📥 Received bridge message ${bridgeMessage.messageId} from ${fromPeer}`);
+
+      // Map the actual station ID to the connection ID for future responses
+      const actualStationId = bridgeMessage.routing.fromStation;
+      if (actualStationId && actualStationId !== this.config.stationId) {
+        this.stationToConnectionMap.set(actualStationId, fromPeer);
+        console.log(`🗺️ Mapped station ${actualStationId} to connection ${fromPeer}`);
+      }
 
       // Route to appropriate handler
       const handler = this.messageHandlers.get(bridgeMessage.payload.type);

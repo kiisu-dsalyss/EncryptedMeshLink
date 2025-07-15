@@ -332,10 +332,9 @@ export class MockStation extends EventEmitter {
         // Create node discovery response for system message
         const nodeList = this.config.nodes.map(node => ({
             nodeId: node.nodeId,
-            nodeName: node.nodeName,
+            name: node.nodeName,
             lastSeen: Date.now(),
-            isOnline: true,
-            stationId: this.config.stationId
+            signal: 95  // Mock signal strength
         }));
 
         console.log(`[MockStation ${this.config.stationId}] Sending node discovery response with ${nodeList.length} nodes`);
@@ -347,8 +346,6 @@ export class MockStation extends EventEmitter {
             0,
             MessageType.NODE_DISCOVERY,
             JSON.stringify({
-                type: 'NODE_LIST_RESPONSE',
-                requestId: JSON.parse(message.payload.data).requestId,
                 nodes: nodeList,
                 stationId: this.config.stationId,
                 timestamp: Date.now()

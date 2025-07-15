@@ -95,6 +95,10 @@ export class EnhancedRelayHandler {
         onError: this.handleDiscoveryError.bind(this)
       });
       
+      // Set up bridge client event handlers
+      this.bridgeClient.on('nodeDiscovery', this.handleNodeDiscovery.bind(this));
+      this.bridgeClient.on('message', this.handleBridgeMessage.bind(this));
+      
       // Start services
       await this.discoveryClient.start();
       this.bridgeClient.start();
@@ -184,26 +188,21 @@ export class EnhancedRelayHandler {
     const remoteCount = this.remoteNodes.size;
     const bridgeStatus = this.discoveryClient ? "🌉 BRIDGE ACTIVE" : "🔌 BRIDGE OFFLINE";
     
-    let response = `📡 Network Status ${bridgeStatus}\n`;
-    response += `🏠 Local nodes: ${localCount}\n`;
-    response += `🌍 Remote nodes: ${remoteCount}\n`;
+    let response = `📡 ${bridgeStatus}\n`;
+    response += `🏠 Local: ${localCount} 🌍 Remote: ${remoteCount}\n`;
     
     if (this.discoveryClient) {
       const peers = this.discoveryClient.getKnownPeers();
-      response += `🔗 Connected stations: ${peers.length}\n`;
+      response += `🔗 Stations: ${peers.length}`;
       
       if (peers.length > 0) {
-        response += `\n📍 Remote Stations:\n`;
         peers.forEach(peer => {
           const nodeCount = Array.from(this.remoteNodes.values())
             .filter(rn => rn.stationId === peer.stationId).length;
-          response += `  • ${peer.stationId} (${nodeCount} nodes)\n`;
+          response += ` ${peer.stationId}(${nodeCount})`;
         });
       }
     }
-    
-    response += `\n💬 Use "@{identifier} message" for relay`;
-    response += `\n📋 Use "nodes" to list all available nodes`;
     
     await this.sendTextMessage(packet.from, response);
   }
@@ -473,11 +472,32 @@ Examples:
     }
   }
 
-  private handlePeerDiscovered(peer: DiscoveredPeer): void {
+  private async handlePeerDiscovered(peer: DiscoveredPeer): Promise<void> {
     console.log(`🆕 New bridge peer discovered: ${peer.stationId}`);
     
-    // TODO: Request node list from this peer when MIB-009 is implemented
-    // For now, just log the discovery
+    try {
+      // Decrypt the peer's contact info to get connection details
+      if (!this.discoveryClient) {
+        console.error('❌ Discovery client not available');
+        return;
+      }
+      
+      const contactInfo = await this.discoveryClient.decryptContactInfo(peer.encryptedContactInfo);
+      console.log(`🔓 Decrypted contact info for ${peer.stationId}: ${contactInfo.ip}:${contactInfo.port}`);
+      
+      // Establish P2P connection via the bridge transport
+      if (this.bridgeClient) {
+        // Request node list from this peer
+        console.log(`📋 Requesting node list from ${peer.stationId}...`);
+        await this.requestNodeListFromPeer(peer.stationId);
+        
+        // Send our own node list to the peer
+        console.log(`📤 Sending our node list to ${peer.stationId}...`);
+        await this.sendNodeListToPeer(peer.stationId);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to handle peer discovery for ${peer.stationId}:`, error);
+    }
   }
 
   private handlePeerLost(stationId: string): void {
@@ -502,5 +522,123 @@ Examples:
     
     // TODO: Implement error recovery strategies
     // For now, just log the error
+  }
+
+  /**
+   * Request node list from a peer station
+   */
+  private async requestNodeListFromPeer(stationId: string): Promise<void> {
+    if (!this.bridgeClient) {
+      console.error('❌ Bridge client not available for node list request');
+      return;
+    }
+
+    try {
+      // Send a system message requesting the node list
+      await this.bridgeClient.sendSystemMessage(stationId, {
+        type: 'NODE_LIST_REQUEST',
+        requestId: `req_${Date.now()}`,
+        timestamp: Date.now()
+      });
+      
+      console.log(`📋 Node list request sent to ${stationId}`);
+    } catch (error) {
+      console.error(`❌ Failed to request node list from ${stationId}:`, error);
+    }
+  }
+
+  /**
+   * Send our node list to a peer station
+   */
+  private async sendNodeListToPeer(stationId: string): Promise<void> {
+    if (!this.bridgeClient) {
+      console.error('❌ Bridge client not available for sending node list');
+      return;
+    }
+
+    try {
+      // Get local nodes from the registry or fallback to known nodes
+      let localNodes: any[] = [];
+      
+      if (this.nodeRegistry) {
+        // Get nodes for our station from the registry
+        localNodes = this.nodeRegistry.getNodesByStation(this.config.stationId);
+      } else {
+        // Fallback to using known mesh nodes
+        localNodes = Array.from(this.knownNodes.entries()).map(([nodeId, node]) => ({
+          nodeId: nodeId.toString(),
+          nodeName: node.user?.longName || node.user?.shortName || `Node ${nodeId}`,
+          stationId: this.config.stationId,
+          lastSeen: Date.now(),
+          isOnline: true,
+          metadata: {
+            meshNodeId: nodeId,
+            nodeInfo: node
+          }
+        }));
+      }
+
+      // Format nodes for bridge discovery message
+      const nodeData = localNodes.map((node: any) => ({
+        nodeId: parseInt(node.nodeId) || 0,
+        name: node.nodeName || `Node ${node.nodeId}`,
+        lastSeen: node.lastSeen || Date.now(),
+        signal: node.metadata?.signal || 0
+      }));
+
+      await this.bridgeClient.broadcastNodeDiscovery(nodeData);
+      console.log(`📤 Sent ${nodeData.length} nodes to ${stationId}`);
+    } catch (error) {
+      console.error(`❌ Failed to send node list to ${stationId}:`, error);
+    }
+  }
+
+  /**
+   * Handle incoming node discovery messages from bridge peers
+   */
+  private handleNodeDiscovery(nodeData: any): void {
+    console.log(`🌉 Received node discovery from ${nodeData.stationId}: ${nodeData.nodes.length} nodes`);
+    
+    try {
+      // Add remote nodes to our registry
+      for (const node of nodeData.nodes) {
+        const remoteNode = {
+          nodeId: node.nodeId,
+          nodeName: node.name,
+          stationId: nodeData.stationId,
+          lastSeen: node.lastSeen,
+          signal: node.signal
+        };
+        
+        // Add to remote nodes map
+        this.remoteNodes.set(remoteNode.nodeId, remoteNode);
+        console.log(`📋 Added remote node: ${remoteNode.nodeName} (${remoteNode.nodeId}) from ${remoteNode.stationId}`);
+      }
+      
+      console.log(`✅ Successfully processed ${nodeData.nodes.length} remote nodes from ${nodeData.stationId}`);
+    } catch (error) {
+      console.error('❌ Failed to process node discovery:', error);
+    }
+  }
+
+  /**
+   * Handle incoming bridge messages
+   */
+  private handleBridgeMessage(message: any): void {
+    console.log(`🌉 Received bridge message: ${message.payload.type}`);
+    
+    // Handle different types of bridge messages
+    if (message.payload.type === 'SYSTEM') {
+      try {
+        const systemData = JSON.parse(message.payload.data);
+        if (systemData.type === 'NODE_LIST_REQUEST') {
+          console.log(`📋 Received node list request from ${message.routing.fromStation}`);
+          // Send our node list in response
+          this.sendNodeListToPeer(message.routing.fromStation);
+        }
+      } catch (error) {
+        console.error('❌ Failed to parse system message:', error);
+      }
+    }
   }
 }

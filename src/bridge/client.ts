@@ -35,6 +35,7 @@ export interface BridgeClientEvents {
   'userMessage': (fromNode: number, toNode: number, text: string, fromStation: string) => void;
   'nodeDiscovery': (nodes: NodeDiscoveryPayload) => void;
   'stationInfo': (info: StationInfoPayload) => void;
+  'nodeListRequest': (fromStation: string) => void;
   'error': (error: Error) => void;
   'connected': () => void;
   'disconnected': () => void;
@@ -169,6 +170,30 @@ export class BridgeClient extends EventEmitter {
     // For now, we'll send to all known peers (this would be enhanced with peer discovery)
     // TODO: Get actual peer list from discovery client
     console.log(`🌉 Broadcasting node discovery: ${nodes.length} nodes`);
+  }
+
+  /**
+   * Send node discovery to a specific station
+   */
+  async sendNodeDiscovery(targetStation: string, nodes: NodeDiscoveryPayload['nodes']): Promise<void> {
+    const payload: NodeDiscoveryPayload = {
+      nodes,
+      stationId: this.config.stationId,
+      timestamp: Date.now()
+    };
+
+    const bridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      targetStation,
+      0, // System message
+      0, // System message
+      MessageType.NODE_DISCOVERY,
+      JSON.stringify(payload),
+      { priority: MessagePriority.LOW }
+    );
+
+    await this.transport.sendMessage(bridgeMessage);
+    console.log(`🌉 Sent node discovery to ${targetStation}: ${nodes.length} nodes`);
   }
 
   /**
@@ -349,6 +374,20 @@ export class BridgeClient extends EventEmitter {
     this.transport.onMessage(MessageType.ERROR, async (message) => {
       console.error(`❌ Error from ${message.routing.fromStation}: ${message.payload.data}`);
       this.emit('error', new Error(message.payload.data));
+    });
+
+    this.transport.onMessage(MessageType.SYSTEM, async (message) => {
+      try {
+        const systemData = JSON.parse(message.payload.data);
+        console.log(`🌉 Received system message from ${message.routing.fromStation}: ${systemData.type}`);
+        
+        if (systemData.type === 'NODE_LIST_REQUEST') {
+          // Handle node list request - emit event so external handler can respond
+          this.emit('nodeListRequest', message.routing.fromStation);
+        }
+      } catch (error) {
+        console.error('Failed to parse system message data:', error);
+      }
     });
   }
 

@@ -10,7 +10,11 @@
     "test": "jest --forceExit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --forceExit",
-    "test:ci": "jest --ci --coverage --watchAll=false --forceExit"
+    "test:ci": "jest --ci --coverage --watchAll=false --forceExit",
+    "test:mock": "tsx src/testing/testRunner.ts",
+    "test:p2p": "tsx src/testing/p2pIntegrationTests.ts",
+    "test:e2e": "tsx src/testing/index.ts",
+    "mock:server": "tsx src/testing/mockStationServer.ts"
   },
   "keywords": [
     "meshtastic",

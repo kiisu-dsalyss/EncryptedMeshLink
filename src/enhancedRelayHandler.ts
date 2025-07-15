@@ -10,8 +10,8 @@ import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
 import { StationConfig } from './config/types';
 import { NodeRegistryManager } from './nodeRegistry/manager';
 import { BridgeClient, createP2PBridgeClient } from './bridge/client';
-import { CryptoService } from './crypto';
-import { parseTargetIdentifier } from './common';
+import { CryptoService } from './crypto/index.js';
+import { parseTargetIdentifier } from './common/parsers';
 
 export interface NodeInfo {
   num: number;

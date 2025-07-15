@@ -4,7 +4,7 @@
  */
 
 import { StationConfigManager } from './config/manager';
-import { parseIntSafe } from './common';
+import { parseIntSafe } from './common/parsers';
 
 export class ConfigCLI {
   private configManager: StationConfigManager;

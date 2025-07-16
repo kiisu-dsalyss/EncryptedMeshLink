@@ -22,7 +22,6 @@ dist/
 bidirectional.ts
 diagnose.ts
 echo-bot.js
-index*.ts
 meshtastic_official.ts
 messageHandler*.ts
 pythonHybrid.ts

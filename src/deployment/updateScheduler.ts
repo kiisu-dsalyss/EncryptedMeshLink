@@ -16,6 +16,7 @@ export interface UpdateSchedulerConfig {
 export class UpdateScheduler {
   private config: UpdateSchedulerConfig;
   private intervalId: NodeJS.Timeout | null = null;
+  private timeoutId: NodeJS.Timeout | null = null;
   private isRunning = false;
 
   constructor(config: UpdateSchedulerConfig) {
@@ -41,7 +42,7 @@ export class UpdateScheduler {
     logInfo('Update Scheduler', `Starting auto-update scheduler (every ${this.config.intervalHours}h)`);
     
     // Run initial check after startup delay
-    setTimeout(() => this.performUpdate(), 30000); // 30 second delay
+    this.timeoutId = setTimeout(() => this.performUpdate(), 30000); // 30 second delay
     
     // Schedule recurring updates
     this.intervalId = setInterval(() => this.performUpdate(), intervalMs);
@@ -51,6 +52,10 @@ export class UpdateScheduler {
    * Stop the automatic update scheduler
    */
   stop(): void {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;

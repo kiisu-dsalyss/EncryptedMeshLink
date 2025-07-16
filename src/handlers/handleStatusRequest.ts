@@ -1,11 +1,7 @@
-/**
- * Handle Status Request
- * MIB-007: Enhanced Relay Handler - Status Request Handler
- */
-
 import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './tryLocalRelay';
-import { RemoteNodeInfo } from './tryRemoteRelay';
+import { RemoteNodeInfo } from './peerEvents';
+import { DiscoveryClientModular } from '../discovery/index';
 
 /**
  * Handle status request from mesh network
@@ -15,6 +11,7 @@ export async function handleStatusRequest(
   knownNodes: Map<number, NodeInfo>,
   remoteNodes: Map<number, RemoteNodeInfo>,
   myNodeNum: number | undefined,
+  discoveryClient: DiscoveryClientModular | undefined,
   packet: any
 ): Promise<void> {
   console.log("📊 Handling status request");
@@ -24,13 +21,17 @@ export async function handleStatusRequest(
     const remoteNodeCount = remoteNodes.size;
     const totalNodes = localNodeCount + remoteNodeCount;
     
-    // Create a concise status message
+    // Get station connection count from discovery client
+    const stationCount = discoveryClient ? discoveryClient.knownPeers.length : 0;
+    
+    // Create a concise status message with station connections
     const statusLines = [
-      `🌉 Bridge: ✅ ACTIVE`,
-      `📡 Total: ${totalNodes} nodes`,
-      `🏠 Local: ${localNodeCount}`,
-      `🌐 Remote: ${remoteNodeCount}`
-    ];
+      "🌉 Bridge: ✅ ACTIVE",
+      "🔗 Stations: " + stationCount,
+      "🏠 Local: " + localNodeCount,
+      "🌐 Remote: " + remoteNodeCount,
+      "📡 Total: " + totalNodes + " nodes"
+    ]
     
     const statusMessage = statusLines.join('\n');
     

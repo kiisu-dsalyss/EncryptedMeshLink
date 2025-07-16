@@ -10,7 +10,7 @@
 import { BridgeMessage, ErrorResponse, AckMessage, serializeBridgeMessage, deserializeBridgeMessage, createErrorResponse, ErrorCode } from './protocol';
 import { P2PTransport, P2PTransportConfig } from '../p2p/transport';
 import { CryptoService } from '../crypto/index';
-import { DiscoveryClient } from '../discoveryClient';
+import { DiscoveryClientModular } from '../discovery/index';
 
 export interface BridgeTransportConfig {
   discoveryServiceUrl: string;
@@ -260,7 +260,7 @@ export function createBridgeTransport(
 export function createP2PBridgeTransport(
   stationId: string,
   crypto: CryptoService,
-  discoveryClient?: DiscoveryClient,
+  discoveryClient?: DiscoveryClientModular,
   options: Partial<P2PTransportConfig> = {}
 ): P2PTransport {
   const config: P2PTransportConfig = {

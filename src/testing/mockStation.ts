@@ -10,7 +10,7 @@
 
 import { EventEmitter } from 'events';
 import { BridgeMessage, MessageType, MessagePriority, createBridgeMessage } from '../bridge/protocol.js';
-import { CryptoService } from '../crypto.js';
+import { CryptoService } from '../crypto/index.js';
 import { StationConfig } from '../config/types.js';
 
 export interface MockNodeConfig {

@@ -12,16 +12,16 @@ export async function registerStation(
   stationId: string,
   contactInfo: ContactInfo,
   encryptedContactInfo: string,
+  publicKey: string,
   makeRequest: (method: string, path: string, body?: any) => Promise<DiscoveryResponse>
 ): Promise<boolean> {
   console.log(`📡 Registering station ${stationId} with discovery server...`);
   
   try {
     const response = await makeRequest('POST', '', {
-      action: 'register',
       station_id: stationId,
-      contact_info: encryptedContactInfo,
-      last_seen: Math.floor(Date.now() / 1000)
+      encrypted_contact_info: encryptedContactInfo,
+      public_key: publicKey
     });
 
     if (response.success) {

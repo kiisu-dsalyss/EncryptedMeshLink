@@ -12,6 +12,8 @@ export function startHeartbeat(
   intervalMs: number,
   isActive: () => boolean,
   stationId: string,
+  encryptedContactInfo: string,
+  publicKey: string,
   makeRequest: (method: string, path: string, body?: any) => Promise<DiscoveryResponse>,
   handleError: (error: Error) => void
 ): NodeJS.Timeout {
@@ -22,9 +24,9 @@ export function startHeartbeat(
       console.log(`💓 Sending heartbeat for station ${stationId}...`);
       
       const response = await makeRequest('POST', '', {
-        action: 'heartbeat',
         station_id: stationId,
-        last_seen: Math.floor(Date.now() / 1000)
+        encrypted_contact_info: encryptedContactInfo,
+        public_key: publicKey
       });
 
       if (response.success) {

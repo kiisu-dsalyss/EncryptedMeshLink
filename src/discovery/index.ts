@@ -20,6 +20,8 @@ export class DiscoveryClientModular extends EventEmitter {
   private discoveryTimer?: NodeJS.Timeout;
   private isActive = false;
   private lastKnownPeers: DiscoveredPeer[] = [];
+  private encryptedContactInfo?: string;
+  private publicKey: string;
 
   constructor(config: StationConfig) {
     super();
@@ -29,17 +31,17 @@ export class DiscoveryClientModular extends EventEmitter {
       throw new Error('Discovery service URL is required');
     }
     
-    // Check for test/fake URLs
-    const isTestUrl = config.discovery.serviceUrl.includes('definitelynotamoose.com') || 
-                     config.discovery.serviceUrl.includes('localhost') ||
-                     config.discovery.serviceUrl.includes('127.0.0.1') ||
-                     config.discovery.serviceUrl.includes('test.example.com');
+    // Check for test/fake URLs (only for jest unit tests)
+    const isTestUrl = config.discovery.serviceUrl.includes('test.example.com') ||
+                     (config.discovery.serviceUrl.includes('localhost') && process.env.NODE_ENV === 'test') ||
+                     (config.discovery.serviceUrl.includes('127.0.0.1') && process.env.NODE_ENV === 'test');
     
     if (isTestUrl) {
       console.log('🧪 Detected test/fake discovery URL - running in offline mode');
     }
     
     this.config = config;
+    this.publicKey = config.keys.publicKey;
   }
 
   async start(): Promise<void> {
@@ -60,6 +62,8 @@ export class DiscoveryClientModular extends EventEmitter {
         30000, // 30 seconds
         () => this.isActive,
         this.config.stationId,
+        this.encryptedContactInfo!,
+        this.publicKey,
         this.makeRequest.bind(this),
         this.handleError.bind(this)
       );
@@ -115,10 +119,14 @@ export class DiscoveryClientModular extends EventEmitter {
       this.getSharedDiscoveryKey.bind(this)
     );
 
+    // Store for heartbeats
+    this.encryptedContactInfo = encryptedContactInfo;
+
     return await registerStation(
       this.config.stationId,
       contactInfo,
       encryptedContactInfo,
+      this.config.keys.publicKey,
       this.makeRequest.bind(this)
     );
   }
@@ -145,19 +153,27 @@ export class DiscoveryClientModular extends EventEmitter {
   }
 
   private startPeerDiscovery(): void {
+    // Run discovery immediately on start
+    this.runPeerDiscovery();
+    
     this.discoveryTimer = setInterval(async () => {
       if (!this.isActive) return;
-      
-      try {
-        const currentPeers = await this.discoverPeers();
-        this.processPeerChanges(currentPeers);
-      } catch (error) {
-        console.error('🔍 Peer discovery error:', error);
-      }
-    }, 60000); // Every minute
+      await this.runPeerDiscovery();
+    }, 30000); // Every 30 seconds (reduced from 60)
+  }
+
+  private async runPeerDiscovery(): Promise<void> {
+    try {
+      console.log('🔍 Running peer discovery...');
+      const currentPeers = await this.discoverPeers();
+      this.processPeerChanges(currentPeers);
+    } catch (error) {
+      console.error('🔍 Peer discovery error:', error);
+    }
   }
 
   private processPeerChanges(currentPeers: DiscoveredPeer[]): void {
+    console.log(`🔧 DEBUG: Processing ${currentPeers.length} discovered peers`);
     const currentPeerIds = new Set(currentPeers.map(p => p.stationId));
     const lastPeerIds = new Set(this.lastKnownPeers.map(p => p.stationId));
 
@@ -176,6 +192,10 @@ export class DiscoveryClientModular extends EventEmitter {
         this.emit('peerLost', peer.stationId);
       }
     }
+
+    // Update last known peers
+    this.lastKnownPeers = currentPeers;
+    console.log(`🔧 DEBUG: Updated last known peers to ${this.lastKnownPeers.length} peers`);
   }
 
   private async getPublicIP(): Promise<string> {
@@ -216,6 +236,8 @@ export class DiscoveryClientModular extends EventEmitter {
 
       if (body && (method === 'POST' || method === 'PUT')) {
         options.body = JSON.stringify(body);
+        console.log(`🔧 DEBUG: Sending ${method} request to ${url}`);
+        console.log(`🔧 DEBUG: Request body:`, JSON.stringify(body, null, 2));
       }
 
       const response = await fetch(url, options);
@@ -245,10 +267,12 @@ export class DiscoveryClientModular extends EventEmitter {
   }
 
   private isTestMode(): boolean {
-    return this.config.discovery.serviceUrl.includes('definitelynotamoose.com') || 
+    // Only consider it test mode for jest unit tests
+    return process.env.NODE_ENV === 'test' && (
            this.config.discovery.serviceUrl.includes('localhost') ||
            this.config.discovery.serviceUrl.includes('127.0.0.1') ||
-           this.config.discovery.serviceUrl.includes('test.example.com');
+           this.config.discovery.serviceUrl.includes('test.example.com')
+    );
   }
 
   // Compatibility methods for existing interface

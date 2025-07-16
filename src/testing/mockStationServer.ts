@@ -10,7 +10,7 @@
 process.env.EML_LOCAL_TESTING = 'true';
 
 import { MockStation } from './mockStation';
-import { DiscoveryClient } from '../discoveryClient';
+import { DiscoveryClientModular } from '../discovery/index';
 import { StationConfig } from '../config/types';
 import { KeyManager } from '../config/keyManager';
 import { BridgeClient, createP2PBridgeClient } from '../bridge/client';
@@ -95,7 +95,7 @@ async function createMockStationConfig(): Promise<StationConfig> {
 
 class MockStationServer {
     private mockStation: MockStation;
-    private discoveryClient: DiscoveryClient | null = null;
+    private discoveryClient: DiscoveryClientModular | null = null;
     private bridgeClient: BridgeClient | null = null;
     private nodeRegistry: NodeRegistryManager | null = null;
     private cryptoService: CryptoService | null = null;
@@ -180,7 +180,7 @@ class MockStationServer {
 
             // Initialize and start discovery client
             console.log('🌍 Registering with discovery service...');
-            this.discoveryClient = new DiscoveryClient(this.stationConfig);
+            this.discoveryClient = new DiscoveryClientModular(this.stationConfig);
             await this.discoveryClient.start();
 
             // Initialize bridge client for P2P communication
@@ -188,7 +188,7 @@ class MockStationServer {
             this.bridgeClient = createP2PBridgeClient(
                 this.stationConfig.stationId,
                 this.cryptoService,
-                this.discoveryClient,
+                this.discoveryClient || undefined,
                 {
                     pollingInterval: 30000,
                     autoStart: false,

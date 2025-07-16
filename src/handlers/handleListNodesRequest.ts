@@ -5,7 +5,7 @@
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './tryLocalRelay';
-import { RemoteNodeInfo } from './tryRemoteRelay';
+import { RemoteNodeInfo } from './peerEvents';
 
 /**
  * Handle list nodes request from mesh network
@@ -38,7 +38,7 @@ export async function handleListNodesRequest(
       const sortedRemote = Array.from(remoteNodes.entries()).sort((a, b) => a[0] - b[0]);
       
       for (const [nodeNum, nodeInfo] of sortedRemote) {
-        nodeLines.push(`🌍 ${nodeInfo.nodeId} (remote)`);
+        nodeLines.push(`🌍 Remote: ${nodeInfo.displayName} [${nodeInfo.shortName}]`);
       }
     }
     

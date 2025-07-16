@@ -42,9 +42,14 @@ class EnvConfig {
   private config: EnvironmentConfig;
 
   private constructor() {
+    // Always use the real discovery server except for jest unit tests
+    const defaultDiscoveryUrl = process.env.NODE_ENV === 'test' 
+      ? 'http://localhost:8899/api/discovery'
+      : 'https://definitelynotamoose.com/api/discovery.php';
+    
     this.config = {
       discovery: {
-        url: process.env.ENCRYPTEDMESHLINK_DISCOVERY_URL || 'https://definitelynotamoose.com/api/discovery.php?peers=true',
+        url: process.env.ENCRYPTEDMESHLINK_DISCOVERY_URL || defaultDiscoveryUrl,
         timeout: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DISCOVERY_TIMEOUT, 30),
         checkInterval: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DISCOVERY_CHECK_INTERVAL, 300)
       },

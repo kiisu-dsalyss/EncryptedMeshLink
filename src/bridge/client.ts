@@ -3,78 +3,73 @@
  * High-level interface for bridge message communication via P2P (MIB-010)
  */
 
-import { BridgeTransport, createBridgeTransport, createP2PBridgeTransport, BridgeTransportStats } from './transport';
+import { createP2PBridgeTransport } from './transport';
 import { P2PTransport, P2PTransportStats } from '../p2p/transport';
 import { CryptoService } from '../crypto/index';
-import { DiscoveryClient } from '../discoveryClient';
+import { DiscoveryClientModular } from '../discovery/index';
 import { 
   BridgeMessage, 
   MessageType, 
   MessagePriority, 
-  createBridgeMessage, 
-  createAckMessage,
-  isMessageExpired,
-  NodeDiscoveryPayload,
-  StationInfoPayload
-} from './protocol.js';
+  createBridgeMessage
+} from './protocol';
 import { EventEmitter } from 'events';
 
 export interface BridgeClientConfig {
   stationId: string;
   pollingInterval: number;
   autoStart: boolean;
-  // Legacy fields (deprecated)
-  discoveryServiceUrl?: string;
-  // New P2P fields
+  discoveryServiceUrl?: string; // Legacy field for backward compatibility
   localPort?: number;
   connectionTimeout?: number;
 }
 
 export interface BridgeClientEvents {
   'message': (message: BridgeMessage) => void;
-  'userMessage': (fromNode: number, toNode: number, text: string, fromStation: string) => void;
-  'nodeDiscovery': (nodes: NodeDiscoveryPayload) => void;
-  'stationInfo': (info: StationInfoPayload) => void;
-  'nodeListRequest': (fromStation: string) => void;
+  'nodeDiscovered': (nodeId: string, nodeInfo: any) => void;
   'error': (error: Error) => void;
-  'connected': () => void;
-  'disconnected': () => void;
+  'started': () => void;
+  'stopped': () => void;
+  'connected': (stationId: string) => void;
+  'disconnected': (stationId: string) => void;
+  'stats': (stats: P2PTransportStats) => void;
 }
 
 /**
- * High-level bridge client for inter-station communication via P2P
+ * Bridge client for P2P station communication
  */
 export class BridgeClient extends EventEmitter {
-  private config: BridgeClientConfig;
   private transport: P2PTransport;
-  private pollingTimer: ReturnType<typeof setInterval> | null = null;
-  private isRunning = false;
-  private myNodeNumber: number | null = null;
+  private isRunning: boolean = false;
+  private config: BridgeClientConfig;
+  private crypto: CryptoService;
 
-  constructor(config: BridgeClientConfig, crypto: CryptoService, discoveryClient?: DiscoveryClient) {
+  constructor(config: BridgeClientConfig, crypto: CryptoService, discoveryClient?: DiscoveryClientModular) {
     super();
     this.config = config;
-    
-    // Create P2P transport instead of discovery-based transport
+    this.crypto = crypto;
+
+    // Create P2P transport
     this.transport = createP2PBridgeTransport(
-      config.stationId,
-      crypto,
+      config.stationId, 
+      crypto, 
       discoveryClient,
       {
         localPort: config.localPort || 8447,
         connectionTimeout: config.connectionTimeout || 10000
       }
     );
-    
+
+    // Setup message handlers
     this.setupMessageHandlers();
-    
+
     if (config.autoStart) {
-      this.start().catch(error => this.emit('error', error));
+      this.start();
     }
   }
 
   /**
-   * Start the bridge client with P2P transport
+   * Start the bridge client
    */
   async start(): Promise<void> {
     if (this.isRunning) {
@@ -83,11 +78,10 @@ export class BridgeClient extends EventEmitter {
 
     this.isRunning = true;
     
-    // Start P2P transport instead of polling
+    // Start the transport
     await this.transport.start();
     
-    this.emit('connected');
-    
+    this.emit('started');
     console.log(`🌉 Bridge client started for station: ${this.config.stationId}`);
   }
 
@@ -101,29 +95,27 @@ export class BridgeClient extends EventEmitter {
 
     this.isRunning = false;
     
-    // Stop P2P transport instead of polling
+    // Stop the transport
     await this.transport.stop();
     
-    this.emit('disconnected');
-    
+    this.emit('stopped');
     console.log(`🌉 Bridge client stopped for station: ${this.config.stationId}`);
   }
 
   /**
-   * Send a user message to another station
+   * Send a message to a specific station via bridge
    */
-  async sendUserMessage(
-    targetStation: string,
-    fromNode: number,
-    toNode: number,
-    message: string,
+  async sendMessage(
+    targetStation: string, 
+    message: string, 
     priority: MessagePriority = MessagePriority.NORMAL
   ): Promise<void> {
+    // For now, use dummy node IDs - this will be enhanced later
     const bridgeMessage = createBridgeMessage(
       this.config.stationId,
       targetStation,
-      fromNode,
-      toNode,
+      0, // fromNode placeholder
+      0, // toNode placeholder  
       MessageType.USER_MESSAGE,
       message,
       { priority }
@@ -134,20 +126,18 @@ export class BridgeClient extends EventEmitter {
   }
 
   /**
-   * Send a command to another station
+   * Send a command to a specific station via bridge
    */
   async sendCommand(
-    targetStation: string,
-    fromNode: number,
-    toNode: number,
-    command: string,
+    targetStation: string, 
+    command: string, 
     priority: MessagePriority = MessagePriority.HIGH
   ): Promise<void> {
     const bridgeMessage = createBridgeMessage(
       this.config.stationId,
       targetStation,
-      fromNode,
-      toNode,
+      0, // fromNode placeholder
+      0, // toNode placeholder
       MessageType.COMMAND,
       command,
       { priority }
@@ -158,240 +148,170 @@ export class BridgeClient extends EventEmitter {
   }
 
   /**
-   * Broadcast node discovery information
+   * Get transport statistics
    */
-  async broadcastNodeDiscovery(nodes: NodeDiscoveryPayload['nodes']): Promise<void> {
-    const payload: NodeDiscoveryPayload = {
-      nodes,
-      stationId: this.config.stationId,
-      timestamp: Date.now()
-    };
-
-    // For now, we'll send to all known peers (this would be enhanced with peer discovery)
-    // TODO: Get actual peer list from discovery client
-    console.log(`🌉 Broadcasting node discovery: ${nodes.length} nodes`);
-  }
-
-  /**
-   * Send node discovery to a specific station
-   */
-  async sendNodeDiscovery(targetStation: string, nodes: NodeDiscoveryPayload['nodes']): Promise<void> {
-    const payload: NodeDiscoveryPayload = {
-      nodes,
-      stationId: this.config.stationId,
-      timestamp: Date.now()
-    };
-
-    const bridgeMessage = createBridgeMessage(
-      this.config.stationId,
-      targetStation,
-      0, // System message
-      0, // System message
-      MessageType.NODE_DISCOVERY,
-      JSON.stringify(payload),
-      { priority: MessagePriority.LOW }
-    );
-
-    await this.transport.sendMessage(bridgeMessage);
-    console.log(`🌉 Sent node discovery to ${targetStation}: ${nodes.length} nodes`);
-  }
-
-  /**
-   * Send station information
-   */
-  async sendStationInfo(targetStation: string, stationInfo: Omit<StationInfoPayload, 'stationId'>): Promise<void> {
-    const payload: StationInfoPayload = {
-      ...stationInfo,
-      stationId: this.config.stationId
-    };
-
-    const bridgeMessage = createBridgeMessage(
-      this.config.stationId,
-      targetStation,
-      0, // System message
-      0, // System message
-      MessageType.STATION_INFO,
-      JSON.stringify(payload),
-      { priority: MessagePriority.LOW }
-    );
-
-    await this.transport.sendMessage(bridgeMessage);
-    console.log(`🌉 Sent station info to ${targetStation}`);
-  }
-
-  /**
-   * Send heartbeat to another station
-   */
-  async sendHeartbeat(targetStation: string): Promise<void> {
-    const heartbeatData = {
-      stationId: this.config.stationId,
-      timestamp: Date.now(),
-      status: 'healthy'
-    };
-
-    const bridgeMessage = createBridgeMessage(
-      this.config.stationId,
-      targetStation,
-      0, // System message
-      0, // System message
-      MessageType.HEARTBEAT,
-      JSON.stringify(heartbeatData),
-      { 
-        priority: MessagePriority.LOW,
-        ttl: 300, // 5 minutes
-        requiresAck: false
-      }
-    );
-
-    await this.transport.sendMessage(bridgeMessage);
-  }
-
-  /**
-   * Send a system message (for internal bridge communication)
-   */
-  async sendSystemMessage(
-    targetStation: string,
-    payload: any,
-    priority: MessagePriority = MessagePriority.NORMAL
-  ): Promise<void> {
-    const bridgeMessage = createBridgeMessage(
-      this.config.stationId,
-      targetStation,
-      0, // System message
-      0, // System message
-      MessageType.SYSTEM,
-      JSON.stringify(payload),
-      { priority }
-    );
-
-    await this.transport.sendMessage(bridgeMessage);
-    console.log(`🌉 Sent system message to ${targetStation}: ${payload.type}`);
-  }
-
-  /**
-   * Broadcast a system message to all known stations
-   */
-  async broadcastSystemMessage(
-    payload: any,
-    priority: MessagePriority = MessagePriority.NORMAL
-  ): Promise<void> {
-    // For now, broadcast to a placeholder "ALL" target
-    // TODO: Implement actual peer discovery and broadcast to known stations
-    const bridgeMessage = createBridgeMessage(
-      this.config.stationId,
-      'ALL', // Broadcast target
-      0, // System message
-      0, // System message
-      MessageType.SYSTEM,
-      JSON.stringify(payload),
-      { priority }
-    );
-
-    await this.transport.sendMessage(bridgeMessage);
-    console.log(`🌉 Broadcast system message: ${payload.type}`);
-  }
-
-  /**
-   * Get bridge transport statistics
-   */
-  getStats(): BridgeTransportStats {
+  getStats(): P2PTransportStats {
     return this.transport.getStats();
   }
 
   /**
-   * Check if bridge is healthy
+   * Get connected peers
    */
-  isHealthy(): boolean {
-    return this.isRunning && this.transport.isHealthy();
+  getConnectedPeers(): string[] {
+    return this.transport.getConnectedPeers();
   }
 
   /**
-   * Set the local node number for this station
+   * Check if connected to a specific station
    */
-  setNodeNumber(nodeNumber: number): void {
-    this.myNodeNumber = nodeNumber;
+  isConnectedTo(stationId: string): boolean {
+    return this.transport.getConnectedPeers().includes(stationId);
   }
 
   /**
-   * Setup message handlers for different message types
+   * Broadcast message to all connected stations
+   */
+  async broadcastMessage(
+    message: string, 
+    priority: MessagePriority = MessagePriority.NORMAL
+  ): Promise<void> {
+    const bridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      'ALL',
+      0, // fromNode placeholder
+      0, // toNode placeholder
+      MessageType.USER_MESSAGE,
+      message,
+      { priority }
+    );
+
+    await this.transport.sendMessage(bridgeMessage);
+    console.log(`🌉 Broadcasted message: ${message.substring(0, 50)}...`);
+  }
+
+  /**
+   * Send node discovery request
+   */
+  async requestNodeDiscovery(targetStation: string): Promise<void> {
+    const payload = {
+      requestId: Math.random().toString(36).substring(2, 15),
+      requestedRegion: 'global'
+    };
+
+    const bridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      targetStation,
+      0, // fromNode placeholder
+      0, // toNode placeholder
+      MessageType.NODE_DISCOVERY,
+      JSON.stringify(payload),
+      { priority: MessagePriority.HIGH }
+    );
+
+    await this.transport.sendMessage(bridgeMessage);
+    console.log(`🌉 Requested node discovery from ${targetStation}`);
+  }
+
+  /**
+   * Send station info request
+   */
+  async requestStationInfo(targetStation: string): Promise<void> {
+    const bridgeMessage = createBridgeMessage(
+      this.config.stationId,
+      targetStation,
+      0, // fromNode placeholder
+      0, // toNode placeholder
+      MessageType.STATION_INFO,
+      '',
+      { priority: MessagePriority.NORMAL }
+    );
+
+    await this.transport.sendMessage(bridgeMessage);
+    console.log(`🌉 Requested station info from ${targetStation}`);
+  }
+
+  /**
+   * Get transport statistics
+   */
+  getTransportStats(): P2PTransportStats {
+    return this.transport.getStats();
+  }
+
+  /**
+   * Handle incoming messages
    */
   private setupMessageHandlers(): void {
-    this.transport.onMessage(MessageType.USER_MESSAGE, async (message) => {
-      this.emit('message', message);
-      this.emit('userMessage', {
-        fromStation: message.routing.fromStation,
-        fromNode: message.routing.fromNode, 
-        toNode: message.routing.toNode, 
-        message: message.payload.data
-      });
+    this.transport.on('message', (message: BridgeMessage) => {
+      console.log(`🌉 Received ${message.payload.type} from ${message.routing.fromStation}: ${message.payload.data.substring(0, 50)}...`);
       
-      // Send ack if required
-      if (message.delivery.requiresAck) {
-        const ack = createAckMessage(message.messageId, 'delivered');
-        await this.transport.sendAck(message, ack);
+      // Handle different message types
+      switch (message.payload.type) {
+        case MessageType.USER_MESSAGE:
+          this.emit('message', message);
+          break;
+          
+        case MessageType.COMMAND:
+          this.emit('message', message);
+          break;
+          
+        case MessageType.NODE_DISCOVERY:
+          this.handleNodeDiscovery(message);
+          break;
+          
+        case MessageType.STATION_INFO:
+          this.handleStationInfo(message);
+          break;
+          
+        case MessageType.ACK:
+          console.log(`✅ Received ACK from ${message.routing.fromStation}`);
+          break;
+          
+        default:
+          console.warn(`❓ Unknown message type: ${message.payload.type}`);
       }
     });
 
-    this.transport.onMessage(MessageType.COMMAND, async (message) => {
-      this.emit('message', message);
-      console.log(`🌉 Received command from ${message.routing.fromStation}: ${message.payload.data}`);
-      
-      // Send ack if required
-      if (message.delivery.requiresAck) {
-        const ack = createAckMessage(message.messageId, 'delivered');
-        await this.transport.sendAck(message, ack);
-      }
+    this.transport.on('error', (error: Error) => {
+      console.error('🚨 Bridge transport error:', error);
+      this.emit('error', error);
     });
 
-    this.transport.onMessage(MessageType.NODE_DISCOVERY, async (message) => {
-      try {
-        const nodeData = JSON.parse(message.payload.data) as NodeDiscoveryPayload;
-        this.emit('nodeDiscovery', nodeData);
-        console.log(`🌉 Received node discovery from ${message.routing.fromStation}: ${nodeData.nodes.length} nodes`);
-      } catch (error) {
-        console.error('Failed to parse node discovery data:', error);
-      }
+    this.transport.on('connected', (stationId: string) => {
+      console.log(`🔗 Connected to station: ${stationId}`);
+      this.emit('connected', stationId);
     });
 
-    this.transport.onMessage(MessageType.STATION_INFO, async (message) => {
-      try {
-        const stationInfo = JSON.parse(message.payload.data) as StationInfoPayload;
-        this.emit('stationInfo', stationInfo);
-        console.log(`🌉 Received station info from ${message.routing.fromStation}: ${stationInfo.displayName}`);
-      } catch (error) {
-        console.error('Failed to parse station info data:', error);
-      }
-    });
-
-    this.transport.onMessage(MessageType.HEARTBEAT, async (message) => {
-      console.log(`💓 Heartbeat from ${message.routing.fromStation}`);
-    });
-
-    this.transport.onMessage(MessageType.ACK, async (message) => {
-      console.log(`✅ Acknowledgment received for message: ${message.payload.data}`);
-    });
-
-    this.transport.onMessage(MessageType.ERROR, async (message) => {
-      console.error(`❌ Error from ${message.routing.fromStation}: ${message.payload.data}`);
-      this.emit('error', new Error(message.payload.data));
-    });
-
-    this.transport.onMessage(MessageType.SYSTEM, async (message) => {
-      try {
-        const systemData = JSON.parse(message.payload.data);
-        console.log(`🌉 Received system message from ${message.routing.fromStation}: ${systemData.type}`);
-        
-        if (systemData.type === 'NODE_LIST_REQUEST') {
-          // Handle node list request - emit event so external handler can respond
-          this.emit('nodeListRequest', message.routing.fromStation);
-        }
-      } catch (error) {
-        console.error('Failed to parse system message data:', error);
-      }
+    this.transport.on('disconnected', (stationId: string) => {
+      console.log(`🔌 Disconnected from station: ${stationId}`);
+      this.emit('disconnected', stationId);
     });
   }
 
-  // Polling methods removed - P2P transport handles connections directly
+  /**
+   * Handle node discovery messages
+   */
+  private handleNodeDiscovery(message: BridgeMessage): void {
+    try {
+      const payload = JSON.parse(message.payload.data);
+      console.log(`📡 Node discovery from ${message.routing.fromStation}:`, payload);
+      this.emit('nodeDiscovered', message.routing.fromStation, payload);
+    } catch (error) {
+      console.error('❌ Failed to parse node discovery payload:', error);
+    }
+  }
+
+  /**
+   * Handle station info messages
+   */
+  private handleStationInfo(message: BridgeMessage): void {
+    try {
+      const payload = JSON.parse(message.payload.data);
+      console.log(`📊 Station info from ${message.routing.fromStation}:`, payload);
+      this.emit('message', message);
+    } catch (error) {
+      console.error('❌ Failed to parse station info payload:', error);
+    }
+  }
 }
 
 /**
@@ -403,7 +323,7 @@ export function createBridgeClient(
   discoveryServiceUrl: string,
   stationId: string,
   crypto: CryptoService,
-  discoveryClient?: DiscoveryClient,
+  discoveryClient?: DiscoveryClientModular,
   options: Partial<BridgeClientConfig> = {}
 ): BridgeClient {
   console.warn('🚨 createBridgeClient is DEPRECATED! Use createP2PBridgeClient instead.');
@@ -426,7 +346,7 @@ export function createBridgeClient(
 export function createP2PBridgeClient(
   stationId: string,
   crypto: CryptoService,
-  discoveryClient?: DiscoveryClient,
+  discoveryClient?: DiscoveryClientModular,
   options: Partial<BridgeClientConfig> = {}
 ): BridgeClient {
   const config: BridgeClientConfig = {

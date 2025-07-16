@@ -7,7 +7,8 @@ import type { MeshDevice } from "@jsr/meshtastic__core";
 import { DiscoveryClientModular } from '../discovery/index';
 import { CryptoService } from '../crypto/index';
 import { tryLocalRelay, NodeInfo } from './tryLocalRelay';
-import { tryRemoteRelay, RemoteNodeInfo } from './tryRemoteRelay';
+import { tryRemoteRelay } from './tryRemoteRelay';
+import { RemoteNodeInfo } from './peerEvents';
 
 export async function handleRelayMessage(
   device: MeshDevice,
@@ -43,7 +44,8 @@ export async function handleRelayMessage(
     cryptoService,
     targetIdentifier,
     message,
-    packet.from
+    packet.from,
+    device  // Pass device for auto-reply functionality
   );
   
   if (remoteResult) {

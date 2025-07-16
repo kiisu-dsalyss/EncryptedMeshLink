@@ -12,7 +12,9 @@ export async function discoverPeers(
   makeRequest: (method: string, path: string, body?: any) => Promise<DiscoveryResponse>
 ): Promise<DiscoveredPeer[]> {
   try {
+    console.log('🔧 DEBUG: Making GET request for peers discovery');
     const response = await makeRequest('GET', '?peers=true');
+    console.log('🔧 DEBUG: Peer discovery response:', JSON.stringify(response, null, 2));
     
     if (response.success && response.data) {
       const rawPeers = response.data.peers || [];

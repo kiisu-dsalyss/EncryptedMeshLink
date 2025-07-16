@@ -14,6 +14,7 @@ import { handleListNodesRequest } from "./src/handlers/handleListNodesRequest";
 import { handleInstructionsRequest } from "./src/handlers/handleInstructionsRequest";
 import { handleEchoMessage } from "./src/handlers/handleEchoMessage";
 import { registerLocalNodes } from "./src/handlers/registerLocalNodes";
+import { handlePeerDiscovered, handlePeerLost, handleDiscoveryError } from "./src/handlers/peerEvents";
 import * as path from 'path';
 
 // Global cleanup state
@@ -146,9 +147,9 @@ async function main() {
       try {
         globalDiscoveryClient = await initializeBridge(
           config,
-          (peer) => console.log("🔍 Peer discovered:", peer),
-          (peer) => console.log("📤 Peer lost:", peer),
-          (error) => console.error("❌ Bridge error:", error)
+          (peer) => handlePeerDiscovered(remoteNodes, peer),
+          (stationId) => handlePeerLost(remoteNodes, stationId),
+          (error) => handleDiscoveryError(error)
         );
         bridgeInitialized = true;
         console.log("🌉 Internet bridge services started successfully");
@@ -193,7 +194,7 @@ async function main() {
             }
             break;
           case 'status':
-            await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
+            await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, packet);
             break;
           case 'nodes':
             await handleListNodesRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
@@ -242,9 +243,9 @@ async function main() {
         try {
           globalDiscoveryClient = await initializeBridge(
             config,
-            (peer) => console.log("🔍 Peer discovered:", peer),
-            (peer) => console.log("📤 Peer lost:", peer),
-            (error) => console.error("❌ Bridge error:", error)
+            (peer) => handlePeerDiscovered(remoteNodes, peer),
+            (stationId) => handlePeerLost(remoteNodes, stationId),
+            (error) => handleDiscoveryError(error)
           );
           bridgeInitialized = true;
           console.log("🌉 Internet bridge services started successfully (fallback mode)");

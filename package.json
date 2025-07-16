@@ -16,7 +16,7 @@
     "test:p2p": "tsx src/testing/p2pIntegrationTests.ts",
     "test:e2e": "tsx src/testing/index.ts",
     "mock:server": "tsx src/testing/mockStationServer.ts",
-    "mock:watch": "concurrently --names \"MOCK,MAIN\" --prefix-colors \"cyan,green\" \"tsx watch src/testing/mockStationServer.ts -- --local-testing\" \"tsx watch encryptedmeshlink.ts -- --local-testing\""
+    "mock:watch": "concurrently --names \"DISC,MOCK,MAIN\" --prefix-colors \"yellow,cyan,green\" \"tsx src/testing/localDiscoveryServer.ts\" \"tsx watch src/testing/mockStationServer.ts -- --local-testing\" \"tsx watch encryptedmeshlink.ts -- --local-testing\""
   },
   "keywords": [
     "meshtastic",

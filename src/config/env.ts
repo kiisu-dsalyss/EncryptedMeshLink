@@ -44,7 +44,7 @@ class EnvConfig {
   private constructor() {
     this.config = {
       discovery: {
-        url: process.env.ENCRYPTEDMESHLINK_DISCOVERY_URL || 'https://discovery.encryptedmeshlink.net/api',
+        url: process.env.ENCRYPTEDMESHLINK_DISCOVERY_URL || 'https://definitelynotamoose.com/api/discovery.php?peers=true',
         timeout: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DISCOVERY_TIMEOUT, 30),
         checkInterval: parseIntSafe(process.env.ENCRYPTEDMESHLINK_DISCOVERY_CHECK_INTERVAL, 300)
       },

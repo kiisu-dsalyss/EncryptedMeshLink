@@ -9,6 +9,77 @@ import { parseIntSafe } from "./src/common/parsers";
 import { UpdateScheduler } from "./src/deployment/updateScheduler";
 import * as path from 'path';
 
+// Global cleanup state
+let globalRelayHandler: EnhancedRelayHandler | null = null;
+let globalUpdateScheduler: UpdateScheduler | null = null;
+let isShuttingDown = false;
+
+/**
+ * Comprehensive cleanup function for ALL exit scenarios
+ */
+async function globalCleanup(reason: string) {
+  if (isShuttingDown) {
+    console.log(`⚠️ Already shutting down, ignoring ${reason}`);
+    return;
+  }
+  
+  isShuttingDown = true;
+  console.log(`\n🧹 Starting cleanup due to: ${reason}`);
+  
+  try {
+    // Stop relay handler and all P2P connections
+    if (globalRelayHandler) {
+      console.log("🛑 Stopping relay handler and P2P connections...");
+      await globalRelayHandler.stopBridge();
+      console.log("✅ Relay handler stopped");
+    }
+    
+    // Stop update scheduler
+    if (globalUpdateScheduler) {
+      console.log("🛑 Stopping update scheduler...");
+      globalUpdateScheduler.stop();
+      console.log("✅ Update scheduler stopped");
+    }
+    
+    console.log("🧹 Global cleanup completed successfully");
+  } catch (error) {
+    console.error("❌ Error during cleanup:", error);
+  }
+}
+
+// Register comprehensive cleanup handlers for ALL possible exit scenarios
+process.on('SIGINT', async () => {
+  await globalCleanup('SIGINT (Ctrl+C)');
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await globalCleanup('SIGTERM (kill command)');
+  process.exit(0);
+});
+
+process.on('uncaughtException', async (error) => {
+  console.error('💥 Uncaught Exception:', error);
+  await globalCleanup('uncaughtException');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('💥 Unhandled Promise Rejection at:', promise, 'reason:', reason);
+  await globalCleanup('unhandledRejection');
+  process.exit(1);
+});
+
+process.on('beforeExit', async () => {
+  await globalCleanup('beforeExit');
+});
+
+process.on('exit', () => {
+  if (!isShuttingDown) {
+    console.log("🚪 Process exiting without cleanup - this shouldn't happen!");
+  }
+});
+
 async function main() {
   // Check for command line flags
   const args = process.argv.slice(2);
@@ -20,22 +91,15 @@ async function main() {
 
   // Initialize auto-update scheduler if enabled
   if (args.includes('--auto-update') || process.env.ENCRYPTEDMESHLINK_AUTO_UPDATE === 'true') {
-    const updateScheduler = new UpdateScheduler({
+    globalUpdateScheduler = new UpdateScheduler({
       repoPath: process.cwd(),
       branch: process.env.ENCRYPTEDMESHLINK_UPDATE_BRANCH || 'master',
       intervalHours: parseInt(process.env.ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS || '1'),
       enabled: true
     });
     
-    updateScheduler.start();
+    globalUpdateScheduler.start();
     console.log("🔄 Auto-update scheduler started");
-    
-    // Graceful shutdown handling
-    process.on('SIGTERM', () => {
-      console.log('📤 Received SIGTERM, stopping auto-update scheduler...');
-      updateScheduler.stop();
-      process.exit(0);
-    });
   }
 
   console.log("🔍 Looking for Meshtastic device...");
@@ -70,7 +134,8 @@ async function main() {
       console.log(`📱 Station node number: ${myNodeNum}`);
       
       // Initialize enhanced relay handler with bridge support
-      relayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, myNodeNum);
+      globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, myNodeNum);
+      relayHandler = globalRelayHandler;
       
       // Initialize bridge services for internet connectivity
       try {
@@ -167,7 +232,8 @@ async function main() {
         const fallbackNodeNum = 1000000000; // Temporary placeholder
         
         try {
-          relayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, fallbackNodeNum);
+          globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, fallbackNodeNum);
+          relayHandler = globalRelayHandler;
           await relayHandler.initializeBridge();
           console.log("🌉 Internet bridge services started successfully (fallback mode)");
           await relayHandler.registerLocalNodes();

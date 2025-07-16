@@ -12,12 +12,19 @@ export async function discoverPeers(
   makeRequest: (method: string, path: string, body?: any) => Promise<DiscoveryResponse>
 ): Promise<DiscoveredPeer[]> {
   try {
-    const response = await makeRequest('GET', '/api/discovery.php?peers=true');
+    const response = await makeRequest('GET', '?peers=true');
     
     if (response.success && response.data) {
       const rawPeers = response.data.peers || [];
       console.log(`🔍 Discovered ${rawPeers.length} peers`);
-      return rawPeers;
+      
+      // Transform snake_case to camelCase
+      return rawPeers.map((peer: any) => ({
+        stationId: peer.station_id,
+        encryptedContactInfo: peer.encrypted_contact_info,
+        publicKey: peer.public_key,
+        lastSeen: peer.last_seen
+      }));
     } else {
       console.log(`ℹ️ No peers discovered: ${response.error || 'Empty response'}`);
       return [];

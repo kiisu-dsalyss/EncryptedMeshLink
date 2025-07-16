@@ -17,7 +17,7 @@ export async function registerStation(
   console.log(`📡 Registering station ${stationId} with discovery server...`);
   
   try {
-    const response = await makeRequest('POST', '/api/discovery.php', {
+    const response = await makeRequest('POST', '', {
       action: 'register',
       station_id: stationId,
       contact_info: encryptedContactInfo,

@@ -3,8 +3,7 @@
  * MIB-007: Enhanced Relay Handler - Peer Event Handlers
  */
 
-import { DiscoveredPeer } from '../discoveryClient';
-import { extractNumericId } from '../common';
+import { DiscoveredPeer } from '../discovery/index';
 
 export interface RemoteNodeInfo {
   nodeId: number;
@@ -20,7 +19,7 @@ export function handlePeerDiscovered(
   
   // TODO: Parse encrypted contact info to extract remote node info
   // For now, create a placeholder remote node entry
-  const remoteNodeId = extractNumericId(peer.stationId);
+  const remoteNodeId = parseInt(peer.stationId.replace(/\D/g, '')) || Math.floor(Math.random() * 1000000);
   
   const remoteNodeInfo: RemoteNodeInfo = {
     nodeId: remoteNodeId,

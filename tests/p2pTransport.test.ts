@@ -6,18 +6,18 @@
 import { P2PTransport } from '../src/p2p/transport';
 import { P2PTransportConfig } from '../src/p2p/transport';
 import { CryptoService } from '../src/crypto';
-import { DiscoveryClient } from '../src/discoveryClient';
+import { DiscoveryClientModular } from '../src/discovery/index';
 import { createBridgeMessage, MessageType, MessagePriority } from '../src/bridge/protocol';
 import { findAvailablePort } from './testUtils';
 
 // Mock dependencies
 jest.mock('../src/crypto');
-jest.mock('../src/discoveryClient');
+jest.mock('../src/discovery/index');
 
 describe('P2PTransport', () => {
   let transport: P2PTransport;
   let mockCrypto: jest.Mocked<CryptoService>;
-  let mockDiscoveryClient: jest.Mocked<DiscoveryClient>;
+  let mockDiscoveryClient: jest.Mocked<DiscoveryClientModular>;
   let testConfig: P2PTransportConfig;
 
   beforeEach(async () => {
@@ -30,10 +30,13 @@ describe('P2PTransport', () => {
       retryDelay: 500
     };
     mockCrypto = new CryptoService({} as any) as jest.Mocked<CryptoService>;
-    mockDiscoveryClient = new DiscoveryClient({} as any) as jest.Mocked<DiscoveryClient>;
+    mockDiscoveryClient = new DiscoveryClientModular({} as any) as jest.Mocked<DiscoveryClientModular>;
     
     // Mock discovery client methods
-    mockDiscoveryClient.getKnownPeers = jest.fn().mockReturnValue([]);
+    Object.defineProperty(mockDiscoveryClient, 'knownPeers', {
+      get: jest.fn().mockReturnValue([]),
+      configurable: true
+    });
     
     transport = new P2PTransport(testConfig, mockCrypto, mockDiscoveryClient);
   });

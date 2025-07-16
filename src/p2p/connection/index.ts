@@ -20,6 +20,16 @@ export class P2PConnectionManager extends EventEmitter {
   private tcpServer?: net.Server;
   private wsServer?: WebSocketServer;
   private isRunning = false;
+  private stats = {
+    connectionsActive: 0,
+    connectionsTotal: 0,
+    messagesSent: 0,
+    messagesReceived: 0,
+    bytesSent: 0,
+    bytesReceived: 0,
+    connectionErrors: 0,
+    lastActivity: Date.now()
+  };
 
   constructor(config: P2PConnectionConfig) {
     super();
@@ -112,10 +122,14 @@ export class P2PConnectionManager extends EventEmitter {
       }
 
       this.connections.set(peer.stationId, connection);
+      this.stats.connectionsTotal++;
+      this.stats.connectionsActive = this.connections.size;
+      this.stats.lastActivity = Date.now();
       this.emit('peerConnected', peer);
       
       return connection;
     } catch (error) {
+      this.stats.connectionErrors++;
       handleConnectionError(peer.stationId, error instanceof Error ? error : new Error(String(error)), this);
       throw error;
     }
@@ -124,13 +138,16 @@ export class P2PConnectionManager extends EventEmitter {
   async sendMessage(peerId: string, message: P2PMessage): Promise<void> {
     const connection = this.connections.get(peerId);
     if (!connection) {
-      throw new Error(`No connection to peer ${peerId}`);
+      throw new Error(`No authenticated connection to peer ${peerId}`);
     }
 
     try {
       await connection.send(message);
+      this.stats.messagesSent++;
+      this.stats.lastActivity = Date.now();
       console.log(`📤 Message sent to ${peerId}`);
     } catch (error) {
+      this.stats.connectionErrors++;
       handleConnectionError(peerId, error instanceof Error ? error : new Error(String(error)), this);
       throw error;
     }
@@ -161,13 +178,13 @@ export class P2PConnectionManager extends EventEmitter {
   getStats(): any {
     return {
       connectionsActive: this.connections.size,
-      connectionsTotal: this.connections.size,
-      messagesSent: 0, // TODO: implement counter
-      messagesReceived: 0, // TODO: implement counter
-      bytesSent: 0, // TODO: implement counter
-      bytesReceived: 0, // TODO: implement counter
-      connectionErrors: 0, // TODO: implement counter
-      lastActivity: Date.now()
+      connectionsTotal: this.stats.connectionsTotal,
+      messagesSent: this.stats.messagesSent,
+      messagesReceived: this.stats.messagesReceived,
+      bytesSent: this.stats.bytesSent,
+      bytesReceived: this.stats.bytesReceived,
+      connectionErrors: this.stats.connectionErrors,
+      lastActivity: this.stats.lastActivity
     };
   }
 }

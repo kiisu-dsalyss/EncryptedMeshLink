@@ -3,7 +3,7 @@
  * Tests for direct peer-to-peer connection management
  */
 
-import { P2PConnectionManager } from '../src/p2p/connectionManager';
+import { P2PConnectionManager } from '../src/p2p/connection/index';
 import { P2PConnectionConfig, PeerInfo } from '../src/p2p/types';
 import { CryptoService } from '../src/crypto';
 import { findAvailablePort } from './testUtils';
@@ -38,7 +38,7 @@ describe('P2PConnectionManager', () => {
       connectionType: 'tcp'
     };
     mockCrypto = new CryptoService({} as any) as jest.Mocked<CryptoService>;
-    connectionManager = new P2PConnectionManager(testConfig, mockCrypto);
+    connectionManager = new P2PConnectionManager(testConfig);
   });
 
   afterEach(async () => {

@@ -8,7 +8,7 @@ import { P2PConnectionManager } from './connection/index';
 import { P2PConnectionConfig, PeerInfo, P2PMessage, P2PConnectionStats } from './types';
 import { BridgeMessage, serializeBridgeMessage, deserializeBridgeMessage, createBridgeMessage, MessageType, MessagePriority } from '../bridge/protocol';
 import { CryptoService } from '../crypto/index';
-import { DiscoveryClient } from '../discoveryClient';
+import { DiscoveryClientModular } from '../discovery/index';
 
 export interface P2PTransportConfig {
   stationId: string;
@@ -34,7 +34,7 @@ export class P2PTransport extends EventEmitter {
   private config: P2PTransportConfig;
   private connectionManager: P2PConnectionManager;
   private crypto: CryptoService;
-  private discoveryClient?: DiscoveryClient;
+  private discoveryClient?: DiscoveryClientModular;
   private stats: P2PTransportStats;
   private messageHandlers: Map<string, (message: BridgeMessage) => Promise<void>>;
   private pendingConnections: Map<string, Promise<void>> = new Map();
@@ -42,7 +42,7 @@ export class P2PTransport extends EventEmitter {
   // Track mapping from station ID to connection ID for responses
   private stationToConnectionMap = new Map<string, string>();
 
-  constructor(config: P2PTransportConfig, crypto: CryptoService, discoveryClient?: DiscoveryClient) {
+  constructor(config: P2PTransportConfig, crypto: CryptoService, discoveryClient?: DiscoveryClientModular) {
     super();
     this.config = config;
     this.crypto = crypto;
@@ -59,7 +59,7 @@ export class P2PTransport extends EventEmitter {
       retryDelay: config.retryDelay
     };
 
-    this.connectionManager = new P2PConnectionManager(connectionConfig, crypto);
+    this.connectionManager = new P2PConnectionManager(connectionConfig);
     this.stats = {
       connectionsActive: 0,
       connectionsTotal: 0,
@@ -292,7 +292,7 @@ export class P2PTransport extends EventEmitter {
 
     try {
       // Get current peers from discovery service
-      const peers = this.discoveryClient.getKnownPeers();
+      const peers = this.discoveryClient.knownPeers;
       
       for (const peer of peers) {
         if (peer.stationId === targetStation) {

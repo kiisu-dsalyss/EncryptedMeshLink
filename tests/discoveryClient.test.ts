@@ -3,7 +3,7 @@
  * Tests for MIB-004: Discovery Client Implementation
  */
 
-import { DiscoveryClient, DiscoveredPeer, ContactInfo } from '../src/discoveryClient';
+import { DiscoveryClientModular, DiscoveredPeer, ContactInfo } from '../src/discovery/index';
 import { StationConfig } from '../src/config/types';
 
 // Mock fetch globally
@@ -11,7 +11,7 @@ global.fetch = jest.fn();
 const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
 
 describe('DiscoveryClient', () => {
-  let discoveryClient: DiscoveryClient;
+  let discoveryClient: DiscoveryClientModular;
   let mockConfig: StationConfig;
 
   beforeEach(() => {
@@ -45,7 +45,7 @@ describe('DiscoveryClient', () => {
       }
     };
 
-    discoveryClient = new DiscoveryClient(mockConfig);
+    discoveryClient = new DiscoveryClientModular(mockConfig);
     
     // Mock the getPublicIP method to avoid external HTTP calls
     jest.spyOn(discoveryClient as any, 'getPublicIP').mockResolvedValue('192.168.1.100');
@@ -65,7 +65,7 @@ describe('DiscoveryClient', () => {
       const invalidConfig = { ...mockConfig, discovery: { ...mockConfig.discovery, serviceUrl: '' } };
       
       expect(() => {
-        new DiscoveryClient(invalidConfig);
+        new DiscoveryClientModular(invalidConfig);
       }).toThrow('Discovery service URL is required');
     });
   });
@@ -256,14 +256,14 @@ describe('DiscoveryClient', () => {
   });
 
   describe('error handling', () => {
-    let testDiscoveryClient: DiscoveryClient;
+    let testDiscoveryClient: DiscoveryClientModular;
     
     beforeEach(() => {
       // Clear all mocks before each test
       jest.clearAllMocks();
       
       // Create a fresh discovery client for error handling tests
-      testDiscoveryClient = new DiscoveryClient(mockConfig);
+      testDiscoveryClient = new DiscoveryClientModular(mockConfig);
       jest.spyOn(testDiscoveryClient as any, 'getPublicIP').mockResolvedValue('192.168.1.100');
     });
     

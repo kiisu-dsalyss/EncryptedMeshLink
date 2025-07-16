@@ -21,7 +21,7 @@ export function startHeartbeat(
     try {
       console.log(`💓 Sending heartbeat for station ${stationId}...`);
       
-      const response = await makeRequest('POST', '/api/discovery.php', {
+      const response = await makeRequest('POST', '', {
         action: 'heartbeat',
         station_id: stationId,
         last_seen: Math.floor(Date.now() / 1000)

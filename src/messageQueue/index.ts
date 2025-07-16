@@ -5,16 +5,16 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
-import { MessageQueueConfig, QueuedMessage, MessagePriority } from './messageQueue/types';
-import { initializeDatabase } from './messageQueue/database';
-import { enqueueMessage } from './messageQueue/enqueue';
-import { getNextMessages, getMessage, getMessagesByStation } from './messageQueue/dequeue';
-import { markProcessing, markDelivered, markFailed } from './messageQueue/status';
-import { cleanupMessages } from './messageQueue/cleanup';
-import { getQueueStats } from './messageQueue/stats';
-import { startCleanupTimer, stopCleanupTimer } from './messageQueue/timer';
+import { MessageQueueConfig, QueuedMessage, MessagePriority, MessageStatus } from './types';
+import { initializeDatabase } from './database';
+import { enqueueMessage } from './enqueue';
+import { getNextMessages, getMessage, getMessagesByStation } from './dequeue';
+import { markProcessing, markDelivered, markFailed } from './status';
+import { cleanupMessages } from './cleanup';
+import { getQueueStats } from './stats';
+import { startCleanupTimer, stopCleanupTimer } from './timer';
 
-export { MessagePriority, QueuedMessage, MessageQueueConfig } from './messageQueue/types';
+export { MessagePriority, MessageStatus, QueuedMessage, MessageQueueConfig } from './types';
 
 export class MessageQueue {
   private db!: Database.Database;

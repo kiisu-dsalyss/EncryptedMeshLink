@@ -1,5 +1,5 @@
 import { NodeManager } from '../src/nodeManager';
-import type { NodeInfo } from '../src/relayHandler';
+import type { NodeInfo } from '../src/relayHandler/types';
 
 describe('NodeManager', () => {
   let nodeManager: NodeManager;

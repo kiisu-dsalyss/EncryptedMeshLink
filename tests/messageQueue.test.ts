@@ -1,4 +1,4 @@
-import { MessageQueue, MessagePriority, MessageStatus } from '../src/messageQueue';
+import { MessageQueue, MessagePriority, MessageStatus } from '../src/messageQueue/index';
 import path from 'path';
 import fs from 'fs';
 

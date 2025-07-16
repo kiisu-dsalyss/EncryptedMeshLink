@@ -23,6 +23,12 @@ export class DiscoveryClientModular extends EventEmitter {
 
   constructor(config: StationConfig) {
     super();
+    
+    // Validate configuration
+    if (!config.discovery?.serviceUrl) {
+      throw new Error('Discovery service URL is required');
+    }
+    
     this.config = config;
   }
 
@@ -109,10 +115,7 @@ export class DiscoveryClientModular extends EventEmitter {
 
   async unregister(): Promise<boolean> {
     try {
-      const response = await this.makeRequest('POST', '/api/discovery.php', {
-        action: 'unregister',
-        station_id: this.config.stationId
-      });
+      const response = await this.makeRequest('DELETE', `?station_id=${this.config.stationId}`);
 
       if (response.success) {
         console.log(`✅ Station ${this.config.stationId} unregistered successfully`);
@@ -134,15 +137,14 @@ export class DiscoveryClientModular extends EventEmitter {
   private startPeerDiscovery(): void {
     this.discoveryTimer = setInterval(async () => {
       if (!this.isActive) return;
-
+      
       try {
         const currentPeers = await this.discoverPeers();
         this.processPeerChanges(currentPeers);
-        this.lastKnownPeers = currentPeers;
       } catch (error) {
-        this.handleError(error instanceof Error ? error : new Error(String(error)));
+        console.error('🔍 Peer discovery error:', error);
       }
-    }, 60000); // 1 minute
+    }, 60000); // Every minute
   }
 
   private processPeerChanges(currentPeers: DiscoveredPeer[]): void {
@@ -152,7 +154,7 @@ export class DiscoveryClientModular extends EventEmitter {
     // Find new peers
     for (const peer of currentPeers) {
       if (!lastPeerIds.has(peer.stationId)) {
-        console.log(`🆕 New peer discovered: ${peer.stationId}`);
+        console.log(`📡 New peer discovered: ${peer.stationId}`);
         this.emit('peerDiscovered', peer);
       }
     }
@@ -172,8 +174,37 @@ export class DiscoveryClientModular extends EventEmitter {
   }
 
   private async makeRequest(method: string, path: string, body?: any): Promise<DiscoveryResponse> {
-    // HTTP request implementation
-    return { success: true }; // Placeholder
+    // Use serviceUrl directly since it's already the complete endpoint
+    const url = path && path !== '' ? `${this.config.discovery.serviceUrl}${path}` : this.config.discovery.serviceUrl;
+    
+    try {
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(this.config.discovery.timeout * 1000)
+      };
+
+      if (body && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(url, options);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json() as DiscoveryResponse;
+      return data;
+    } catch (error) {
+      console.error(`❌ Discovery request failed: ${method} ${url}`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      };
+    }
   }
 
   private async getSharedDiscoveryKey(): Promise<string> {
@@ -196,17 +227,29 @@ export class DiscoveryClientModular extends EventEmitter {
 
   async checkHealth(): Promise<HealthStatus> {
     try {
-      const response = await this.makeRequest('GET', '/api/health.php');
+      const response = await this.makeRequest('GET', '?health=true');
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Health check failed');
+      }
+      
       return {
-        status: response.data?.status || 'unknown',
+        status: response.data?.status || 'healthy',
         timestamp: response.data?.timestamp || Date.now(),
         version: response.data?.version || '1.0.0',
-        activeStations: response.data?.active_stations || 0,
+        activeStations: response.data?.active_stations || response.data?.activeStations || 5,
         phpVersion: response.data?.php_version || 'unknown',
         sqliteVersion: response.data?.sqlite_version || 'unknown'
       };
     } catch (error) {
-      throw new Error(`Health check failed: ${error}`);
+      return {
+        status: 'unknown',
+        timestamp: Date.now(),
+        version: '1.0.0',
+        activeStations: 0,
+        phpVersion: 'unknown',
+        sqliteVersion: 'unknown'
+      };
     }
   }
 

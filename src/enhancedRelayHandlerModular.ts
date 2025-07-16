@@ -6,7 +6,7 @@
  */
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
-import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
+import { DiscoveryClientModular, DiscoveredPeer } from './discovery/index';
 import { StationConfig } from './config/types';
 import { CryptoService } from './crypto/index';
 
@@ -27,7 +27,7 @@ export class EnhancedRelayHandler {
   private device: MeshDevice;
   private knownNodes: Map<number, NodeInfo>;
   private remoteNodes: Map<number, RemoteNodeInfo> = new Map();
-  private discoveryClient?: DiscoveryClient;
+  private discoveryClient?: DiscoveryClientModular;
   private myNodeNum?: number;
   private config: StationConfig;
   private cryptoService: CryptoService;

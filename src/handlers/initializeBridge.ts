@@ -3,7 +3,7 @@
  * MIB-007: Enhanced Relay Handler - Initialize Bridge Function
  */
 
-import { DiscoveryClient, DiscoveredPeer } from '../discoveryClient';
+import { DiscoveryClientModular, DiscoveredPeer } from '../discovery/index';
 import { StationConfig } from '../config/types';
 
 export async function initializeBridge(
@@ -11,18 +11,16 @@ export async function initializeBridge(
   onPeerDiscovered: (peer: DiscoveredPeer) => void,
   onPeerLost: (stationId: string) => void,
   onError: (error: Error) => void
-): Promise<DiscoveryClient> {
+): Promise<DiscoveryClientModular> {
   console.log("🌉 Initializing EncryptedMeshLink bridge services...");
   
   try {
-    const discoveryClient = new DiscoveryClient(config);
+    const discoveryClient = new DiscoveryClientModular(config);
     
     // Set up discovery event handlers
-    discoveryClient.setEventHandlers({
-      onPeerDiscovered,
-      onPeerLost,
-      onError
-    });
+    discoveryClient.on('peerDiscovered', onPeerDiscovered);
+    discoveryClient.on('peerLost', onPeerLost);
+    discoveryClient.on('error', onError);
     
     // Start discovery client
     await discoveryClient.start();

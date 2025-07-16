@@ -4,7 +4,7 @@
  */
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
-import { DiscoveryClient } from '../discoveryClient';
+import { DiscoveryClientModular } from '../discovery/index';
 import { CryptoService } from '../crypto/index';
 import { tryLocalRelay, NodeInfo } from './tryLocalRelay';
 import { tryRemoteRelay, RemoteNodeInfo } from './tryRemoteRelay';
@@ -14,7 +14,7 @@ export async function handleRelayMessage(
   knownNodes: Map<number, NodeInfo>,
   remoteNodes: Map<number, RemoteNodeInfo>,
   myNodeNum: number | undefined,
-  discoveryClient: DiscoveryClient | undefined,
+  discoveryClient: DiscoveryClientModular | undefined,
   cryptoService: CryptoService,
   packet: any,
   targetIdentifier: string,

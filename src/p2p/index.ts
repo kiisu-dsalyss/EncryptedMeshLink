@@ -4,5 +4,5 @@
  */
 
 export * from './types';
-export * from './connectionManager';
+export * from './connection/index';
 export * from './transport';

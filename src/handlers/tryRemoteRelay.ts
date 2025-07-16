@@ -3,7 +3,7 @@
  * MIB-007: Enhanced Relay Handler - Remote Relay Function with Crypto Integration
  */
 
-import { DiscoveryClient, DiscoveredPeer } from '../discoveryClient';
+import { DiscoveryClientModular, DiscoveredPeer } from '../discovery/index';
 import { CryptoService } from '../crypto/index';
 import { parseTargetIdentifier } from '../common/parsers';
 
@@ -14,7 +14,7 @@ export interface RemoteNodeInfo {
 }
 
 export async function tryRemoteRelay(
-  discoveryClient: DiscoveryClient | undefined,
+  discoveryClient: DiscoveryClientModular | undefined,
   remoteNodes: Map<number, RemoteNodeInfo>,
   cryptoService: CryptoService,
   targetIdentifier: string,

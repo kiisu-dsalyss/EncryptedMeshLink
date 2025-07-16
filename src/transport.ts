@@ -42,23 +42,53 @@ export class TransportNodeSerial implements Types.Transport {
     }));
 
     // Create a proper stream from the serial port and pipe through the transform
+    let controllerClosed = false;
     const nodeReadableStream = new ReadableStream<Uint8Array>({
       start: (controller) => {
         this.port.on('data', (data: Buffer) => {
-          controller.enqueue(new Uint8Array(data));
+          try {
+            if (!controllerClosed) {
+              controller.enqueue(new Uint8Array(data));
+            }
+          } catch (error) {
+            // Handle protobuf parsing errors gracefully
+            console.warn('⚠️ Failed to process incoming data, skipping packet:', error instanceof Error ? error.message : 'Unknown error');
+          }
         });
 
         this.port.on('error', (err) => {
-          controller.error(err);
+          if (!controllerClosed) {
+            console.error('🔌 Serial port error:', err);
+            controller.error(err);
+            controllerClosed = true;
+          }
         });
 
         this.port.on('close', () => {
-          controller.close();
+          if (!controllerClosed) {
+            console.log('🔌 Serial port closed');
+            controller.close();
+            controllerClosed = true;
+          }
         });
       },
     });
 
-    this._fromDevice = nodeReadableStream.pipeThrough(Utils.fromDeviceStream());
+    // Add error handling transform before the fromDeviceStream
+    const errorHandlingStream = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        try {
+          controller.enqueue(chunk);
+        } catch (error) {
+          console.warn('⚠️ Dropping corrupted packet:', error instanceof Error ? error.message : 'Unknown error');
+          // Drop the corrupted chunk, don't re-throw
+        }
+      }
+    });
+
+    this._fromDevice = nodeReadableStream
+      .pipeThrough(errorHandlingStream)
+      .pipeThrough(Utils.fromDeviceStream());
   }
 
   get toDevice(): WritableStream<Uint8Array> {
@@ -71,9 +101,19 @@ export class TransportNodeSerial implements Types.Transport {
 
   public async disconnect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Remove all listeners to prevent further events
+      this.port.removeAllListeners('data');
+      this.port.removeAllListeners('error');
+      this.port.removeAllListeners('close');
+      
       this.port.close((err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {
+          console.error('🔌 Error closing serial port:', err);
+          reject(err);
+        } else {
+          console.log('🔌 Serial port disconnected successfully');
+          resolve();
+        }
       });
     });
   }

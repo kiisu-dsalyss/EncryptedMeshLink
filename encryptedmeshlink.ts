@@ -1,16 +1,23 @@
 import { MeshDevice } from "@jsr/meshtastic__core";
 import { TransportNodeSerial } from "./src/transport/index";
 import { NodeManager } from "./src/nodeManager";
-import { EnhancedRelayHandler } from "./src/enhancedRelayHandlerModular";
 import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
 import { CryptoService } from "./src/crypto/index";
 import { parseIntSafe } from "./src/common/parsers";
 import { UpdateScheduler } from "./src/deployment/updateScheduler";
+import { initializeBridge } from "./src/handlers/initializeBridge";
+import { stopBridge } from "./src/handlers/stopBridge";
+import { handleRelayMessage } from "./src/handlers/handleRelayMessage";
+import { handleStatusRequest } from "./src/handlers/handleStatusRequest";
+import { handleListNodesRequest } from "./src/handlers/handleListNodesRequest";
+import { handleInstructionsRequest } from "./src/handlers/handleInstructionsRequest";
+import { handleEchoMessage } from "./src/handlers/handleEchoMessage";
+import { registerLocalNodes } from "./src/handlers/registerLocalNodes";
 import * as path from 'path';
 
 // Global cleanup state
-let globalRelayHandler: EnhancedRelayHandler | null = null;
+let globalDiscoveryClient: any = null;
 let globalUpdateScheduler: UpdateScheduler | null = null;
 let isShuttingDown = false;
 
@@ -27,11 +34,11 @@ async function globalCleanup(reason: string) {
   console.log(`\n🧹 Starting cleanup due to: ${reason}`);
   
   try {
-    // Stop relay handler and all P2P connections
-    if (globalRelayHandler) {
-      console.log("🛑 Stopping relay handler and P2P connections...");
-      await globalRelayHandler.stopBridge();
-      console.log("✅ Relay handler stopped");
+    // Stop discovery client and all P2P connections
+    if (globalDiscoveryClient) {
+      console.log("🛑 Stopping discovery client and P2P connections...");
+      await stopBridge(globalDiscoveryClient);
+      console.log("✅ Bridge services stopped");
     }
     
     // Stop update scheduler
@@ -120,10 +127,12 @@ async function main() {
     const transport = await TransportNodeSerial.create();
     const device = new MeshDevice(transport);
     let myNodeNum: number | undefined;
-    // Create node manager and enhanced relay handler
+    // Create node manager
     const nodeManager = new NodeManager();
     const knownNodes = nodeManager.getKnownNodes();
-    let relayHandler: EnhancedRelayHandler;
+    const remoteNodes = new Map();
+    const cryptoService = new CryptoService();
+    let bridgeInitialized = false;
 
     console.log("🚀 Connected to device, setting up event listeners...");
     console.log("🌉 Initializing EncryptedMeshLink station...");
@@ -133,17 +142,19 @@ async function main() {
       myNodeNum = nodeInfo.myNodeNum;
       console.log(`📱 Station node number: ${myNodeNum}`);
       
-      // Initialize enhanced relay handler with bridge support
-      globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, myNodeNum);
-      relayHandler = globalRelayHandler;
-      
       // Initialize bridge services for internet connectivity
       try {
-        await relayHandler.initializeBridge();
+        globalDiscoveryClient = await initializeBridge(
+          config,
+          (peer) => console.log("🔍 Peer discovered:", peer),
+          (peer) => console.log("📤 Peer lost:", peer),
+          (error) => console.error("❌ Bridge error:", error)
+        );
+        bridgeInitialized = true;
         console.log("🌉 Internet bridge services started successfully");
         
         // Register any existing local nodes with the registry
-        await relayHandler.registerLocalNodes();
+        await registerLocalNodes(device, knownNodes, config);
       } catch (bridgeError) {
         console.warn("⚠️ Bridge initialization failed, running in local-only mode:", bridgeError);
         // Continue without bridge - local functionality still works
@@ -172,26 +183,26 @@ async function main() {
       console.log(`📨 Received message from ${packet.from}: "${packet.data}"`);
       
       // Check if it's not from ourselves to avoid infinite loops
-      if (myNodeNum && packet.from !== myNodeNum && relayHandler) {
+      if (myNodeNum && packet.from !== myNodeNum && bridgeInitialized) {
         const parsedMessage = MessageParser.parseMessage(packet.data);
         
         switch (parsedMessage.type) {
           case 'relay':
             if (parsedMessage.targetIdentifier && parsedMessage.message) {
-              await relayHandler.handleRelayMessage(packet, parsedMessage.targetIdentifier, parsedMessage.message);
+              await handleRelayMessage(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, cryptoService, packet, parsedMessage.targetIdentifier, parsedMessage.message);
             }
             break;
           case 'status':
-            await relayHandler.handleStatusRequest(packet);
+            await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
             break;
           case 'nodes':
-            await relayHandler.handleListNodesRequest(packet);
+            await handleListNodesRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
             break;
           case 'instructions':
-            await relayHandler.handleInstructionsRequest(packet);
+            await handleInstructionsRequest(device, myNodeNum, packet);
             break;
           case 'echo':
-            await relayHandler.handleEchoMessage(packet);
+            await handleEchoMessage(device, myNodeNum, packet);
             break;
         }
       } else {
@@ -225,18 +236,19 @@ async function main() {
       console.log("🔗 EncryptedMeshLink station ready! Send a message to test bridging!");
       
       // Fallback: Initialize bridge if onMyNodeInfo hasn't fired yet
-      if (!relayHandler) {
+      if (!bridgeInitialized) {
         console.log("🔄 Node info not received, initializing bridge with fallback...");
         
-        // Use a default node number or undefined - the relay handler can handle this
-        const fallbackNodeNum = 1000000000; // Temporary placeholder
-        
         try {
-          globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, fallbackNodeNum);
-          relayHandler = globalRelayHandler;
-          await relayHandler.initializeBridge();
+          globalDiscoveryClient = await initializeBridge(
+            config,
+            (peer) => console.log("🔍 Peer discovered:", peer),
+            (peer) => console.log("📤 Peer lost:", peer),
+            (error) => console.error("❌ Bridge error:", error)
+          );
+          bridgeInitialized = true;
           console.log("🌉 Internet bridge services started successfully (fallback mode)");
-          await relayHandler.registerLocalNodes();
+          await registerLocalNodes(device, knownNodes, config);
         } catch (bridgeError) {
           console.warn("⚠️ Fallback bridge initialization failed, running in local-only mode:", bridgeError);
         }
@@ -247,9 +259,9 @@ async function main() {
     const shutdown = async (signal: string) => {
       console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
       
-      if (relayHandler) {
+      if (bridgeInitialized && globalDiscoveryClient) {
         try {
-          await relayHandler.stopBridge();
+          await stopBridge(globalDiscoveryClient);
         } catch (error) {
           console.warn("⚠️ Error during bridge shutdown:", error);
         }

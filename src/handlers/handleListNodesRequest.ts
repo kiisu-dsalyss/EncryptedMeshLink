@@ -20,42 +20,39 @@ export async function handleListNodesRequest(
   console.log("📋 Handling list nodes request");
   
   try {
-    const nodeList: string[] = [];
+    const nodeLines: string[] = [];
     
-    // Add local nodes
-    nodeList.push("🏠 Local Nodes:");
-    for (const [nodeNum, nodeInfo] of knownNodes) {
-      const name = nodeInfo.user?.longName || `Node-${nodeNum}`;
-      nodeList.push(`  • ${name} (${nodeNum})`);
-    }
-    
-    // Add remote nodes
-    if (remoteNodes.size > 0) {
-      nodeList.push("🌐 Remote Nodes:");
-      for (const [nodeNum, nodeInfo] of remoteNodes) {
-        nodeList.push(`  • Node-${nodeInfo.nodeId} (${nodeNum}) via ${nodeInfo.stationId}`);
+    // Add local nodes (compact format)
+    if (knownNodes.size > 0) {
+      const sortedLocal = Array.from(knownNodes.entries()).sort((a, b) => a[0] - b[0]);
+      
+      for (const [nodeNum, nodeInfo] of sortedLocal) {
+        const name = nodeInfo.user?.longName || `Node-${nodeNum}`;
+        const shortName = nodeInfo.user?.shortName || "📱";
+        nodeLines.push(`📱 ${name} [${shortName}]`);
       }
     }
     
-    const message = nodeList.length > 1 ? nodeList.join('\n') : "📭 No nodes available for relay";
+    // Add remote nodes if any
+    if (remoteNodes.size > 0) {
+      const sortedRemote = Array.from(remoteNodes.entries()).sort((a, b) => a[0] - b[0]);
+      
+      for (const [nodeNum, nodeInfo] of sortedRemote) {
+        nodeLines.push(`🌍 ${nodeInfo.nodeId} (remote)`);
+      }
+    }
+    
+    // Create a single compact message
+    let message: string;
+    if (nodeLines.length === 0) {
+      message = "📭 No nodes available";
+    } else {
+      message = `📡 Nodes (${nodeLines.length}):\n${nodeLines.join('\n')}`;
+    }
     
     if (packet.from && packet.from !== myNodeNum) {
-      // Split long messages if needed (mesh networks have message size limits)
-      const maxLength = 200;
-      if (message.length <= maxLength) {
-        await device.sendText(message, packet.from);
-      } else {
-        // Send in chunks
-        const chunks = message.match(new RegExp(`.{1,${maxLength}}`, 'g')) || [message];
-        for (let i = 0; i < chunks.length; i++) {
-          const chunk = `(${i + 1}/${chunks.length}) ${chunks[i]}`;
-          await device.sendText(chunk, packet.from);
-          // Small delay between chunks
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      console.log(`📤 Sent node list to ${packet.from} (${nodeList.length - 1} nodes)`);
+      await device.sendText(message, packet.from);
+      console.log(`📤 Sent compact node list to ${packet.from} (${knownNodes.size + remoteNodes.size} total nodes)`);
     }
     
   } catch (error) {

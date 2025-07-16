@@ -24,11 +24,19 @@ export async function handleStatusRequest(
     const remoteNodeCount = remoteNodes.size;
     const totalNodes = localNodeCount + remoteNodeCount;
     
-    const statusMessage = `🔄 Relay Status: ${totalNodes} total nodes (${localNodeCount} local, ${remoteNodeCount} remote) | Bridge: Active`;
+    // Create a concise status message
+    const statusLines = [
+      `🌉 Bridge: ✅ ACTIVE`,
+      `📡 Total: ${totalNodes} nodes`,
+      `🏠 Local: ${localNodeCount}`,
+      `🌐 Remote: ${remoteNodeCount}`
+    ];
+    
+    const statusMessage = statusLines.join('\n');
     
     if (packet.from && packet.from !== myNodeNum) {
       await device.sendText(statusMessage, packet.from);
-      console.log(`📤 Sent status to node ${packet.from}: ${statusMessage}`);
+      console.log(`📤 Sent concise status to node ${packet.from}`);
     }
     
   } catch (error) {

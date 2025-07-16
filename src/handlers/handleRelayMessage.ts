@@ -48,7 +48,25 @@ export async function handleRelayMessage(
   
   if (remoteResult) {
     console.log(`✅ Bridge relay successful to remote target "${targetIdentifier}"`);
+    
+    // Send confirmation back to sender for remote relay
+    try {
+      const confirmationMessage = `✅ Message relayed to remote target "${targetIdentifier}"`;
+      await device.sendText(confirmationMessage, packet.from);
+      console.log(`📤 Remote relay confirmation sent to sender (${packet.from})`);
+    } catch (error) {
+      console.error(`❌ Failed to send remote relay confirmation:`, error);
+    }
   } else {
     console.log(`❌ Bridge relay failed: Target "${targetIdentifier}" not found locally or remotely`);
+    
+    // Send failure message back to sender
+    try {
+      const failureMessage = `❌ Relay failed: Target "${targetIdentifier}" not found`;
+      await device.sendText(failureMessage, packet.from);
+      console.log(`📤 Failure notification sent to sender (${packet.from})`);
+    } catch (error) {
+      console.error(`❌ Failed to send error message to sender:`, error);
+    }
   }
 }

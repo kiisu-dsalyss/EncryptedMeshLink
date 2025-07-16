@@ -17,11 +17,43 @@ import {
   ConnectionAttemptStrategy
 } from './types';
 import { CryptoService } from '../crypto/index';
+import { logInfo, logError } from '../common';
 
 interface ActiveConnection extends P2PConnection {
   socket: net.Socket | WebSocket;
   authenticated: boolean;
   lastPing: number;
+}
+
+/**
+ * Find an available port starting from the preferred port
+ */
+async function findAvailablePort(preferredPort: number, maxAttempts: number = 10): Promise<number> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const port = preferredPort + i;
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(`No available port found starting from ${preferredPort}`);
+}
+
+/**
+ * Check if a port is available
+ */
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(port, () => {
+      server.once('close', () => {
+        resolve(true);
+      });
+      server.close();
+    });
+    server.on('error', () => {
+      resolve(false);
+    });
+  });
 }
 
 /**
@@ -182,23 +214,34 @@ export class P2PConnectionManager extends EventEmitter {
   // Private methods
 
   private async startTcpServer(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.tcpServer = net.createServer();
-      
-      this.tcpServer.on('connection', (socket) => {
-        this.handleIncomingTcpConnection(socket);
-      });
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Find an available port starting from the configured port
+        const availablePort = await findAvailablePort(this.config.localPort);
+        if (availablePort !== this.config.localPort) {
+          console.log(`🔄 Port ${this.config.localPort} in use, using ${availablePort} instead`);
+          this.config.localPort = availablePort;
+        }
 
-      this.tcpServer.on('error', (error) => {
-        console.error('TCP server error:', error);
-        this.stats.connectionErrors++;
+        this.tcpServer = net.createServer();
+        
+        this.tcpServer.on('connection', (socket) => {
+          this.handleIncomingTcpConnection(socket);
+        });
+
+        this.tcpServer.on('error', (error) => {
+          console.error('TCP server error:', error);
+          this.stats.connectionErrors++;
+          reject(error);
+        });
+
+        this.tcpServer.listen(this.config.localPort, () => {
+          console.log(`📡 TCP server listening on port ${this.config.localPort}`);
+          resolve();
+        });
+      } catch (error) {
         reject(error);
-      });
-
-      this.tcpServer.listen(this.config.localPort, () => {
-        console.log(`📡 TCP server listening on port ${this.config.localPort}`);
-        resolve();
-      });
+      }
     });
   }
 

@@ -1,7 +1,7 @@
 # Standard deployment Dockerfile
 # Multi-stage build for efficient caching
 
-FROM node:20-alpine AS installer
+FROM node:23-alpine AS installer
 
 # Install git, bash, and udev for auto-updates and hardware detection
 RUN apk add --no-cache git bash udev

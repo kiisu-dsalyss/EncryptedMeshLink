@@ -1,7 +1,7 @@
 # Raspberry Pi deployment Dockerfile
 # Optimized for ARM architecture and low memory
 
-FROM node:20-alpine AS installer
+FROM node:23-alpine AS installer
 
 # Install git, bash, and udev tools for auto-updates and hardware detection
 RUN apk add --no-cache git bash udev

@@ -61,7 +61,7 @@ export class BridgeClient extends EventEmitter {
       crypto,
       discoveryClient,
       {
-        localPort: config.localPort || 8080,
+        localPort: config.localPort || 8447,
         connectionTimeout: config.connectionTimeout || 10000
       }
     );
@@ -433,7 +433,7 @@ export function createP2PBridgeClient(
     stationId,
     pollingInterval: 5000, // 5 seconds for peer discovery
     autoStart: false,
-    localPort: 8080,
+    localPort: 8447,
     connectionTimeout: 10000,
     ...options
   };

@@ -316,7 +316,7 @@ export class P2PTransport extends EventEmitter {
             return {
               stationId: peer.stationId,
               host: '127.0.0.1',
-              port: 8080,
+              port: 8447,
               publicKey: peer.publicKey,
               lastSeen: peer.lastSeen,
               connectionType: 'tcp'

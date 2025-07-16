@@ -265,7 +265,7 @@ export function createP2PBridgeTransport(
 ): P2PTransport {
   const config: P2PTransportConfig = {
     stationId,
-    localPort: 8080,     // Default P2P port
+    localPort: 8447,     // Default P2P port (using proper default)
     connectionTimeout: 10000,
     retryAttempts: 3,
     retryDelay: 1000,

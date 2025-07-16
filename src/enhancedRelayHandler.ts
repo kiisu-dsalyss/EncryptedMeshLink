@@ -72,7 +72,7 @@ export class EnhancedRelayHandler {
         {
           pollingInterval: 30000,
           autoStart: false,
-          localPort: 8080,
+          localPort: this.config.p2p.listenPort,
           connectionTimeout: 10000
         }
       );

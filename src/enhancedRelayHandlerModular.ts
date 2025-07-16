@@ -8,7 +8,7 @@
 import type { MeshDevice } from "@jsr/meshtastic__core";
 import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
 import { StationConfig } from './config/types';
-import { CryptoService } from './crypto/index.js';
+import { CryptoService } from './crypto/index';
 
 // Import modular functions
 import { initializeBridge } from './handlers/initializeBridge';

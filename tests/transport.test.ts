@@ -1,10 +1,15 @@
 import { TransportNodeSerial } from '../src/transport';
 import { SerialPort } from 'serialport';
-import { findPort } from '../findPort';
+import { findPortWithFallback } from '../src/hardware/deviceDetection';
 
 // Mock dependencies
 jest.mock('serialport');
-jest.mock('../findPort');
+jest.mock('../src/hardware/deviceDetection');
+
+// Mock SerialPort.list() to return empty array by default
+const MockedSerialPort = SerialPort as jest.MockedClass<typeof SerialPort>;
+MockedSerialPort.list = jest.fn().mockResolvedValue([]);
+
 jest.mock('@jsr/meshtastic__core', () => ({
   Utils: {
     toDeviceStream: {
@@ -33,7 +38,7 @@ jest.mock('@jsr/meshtastic__core', () => ({
   },
 }));
 
-const mockFindPort = findPort as jest.MockedFunction<typeof findPort>;
+const mockFindPortWithFallback = findPortWithFallback as jest.MockedFunction<typeof findPortWithFallback>;
 const mockSerialPort = SerialPort as jest.MockedClass<typeof SerialPort>;
 
 describe('TransportNodeSerial', () => {
@@ -47,6 +52,7 @@ describe('TransportNodeSerial', () => {
       write: jest.fn(),
       on: jest.fn(),
       close: jest.fn(),
+      removeAllListeners: jest.fn(),
     } as any;
     
     mockSerialPort.mockImplementation(() => mockPort);
@@ -54,11 +60,11 @@ describe('TransportNodeSerial', () => {
 
   describe('create', () => {
     test('creates transport with found port', async () => {
-      mockFindPort.mockResolvedValue('/dev/ttyUSB0');
+      mockFindPortWithFallback.mockResolvedValue('/dev/ttyUSB0');
 
       const transport = await TransportNodeSerial.create();
       
-      expect(findPort).toHaveBeenCalled();
+      expect(findPortWithFallback).toHaveBeenCalled();
       expect(SerialPort).toHaveBeenCalledWith({
         path: '/dev/ttyUSB0',
         baudRate: 115200,
@@ -67,7 +73,7 @@ describe('TransportNodeSerial', () => {
     });
 
     test('creates transport with custom baud rate', async () => {
-      mockFindPort.mockResolvedValue('/dev/ttyUSB0');
+      mockFindPortWithFallback.mockResolvedValue('/dev/ttyUSB0');
 
       await TransportNodeSerial.create(9600);
       
@@ -78,13 +84,13 @@ describe('TransportNodeSerial', () => {
     });
 
     test('throws error when no port found', async () => {
-      mockFindPort.mockRejectedValue(new Error('No Meshtastic device found'));
+      mockFindPortWithFallback.mockRejectedValue(new Error('No Meshtastic device found'));
 
       await expect(TransportNodeSerial.create()).rejects.toThrow('No Meshtastic device found');
     });
 
     test('throws error when findPort throws', async () => {
-      mockFindPort.mockRejectedValue(new Error('USB detection failed'));
+      mockFindPortWithFallback.mockRejectedValue(new Error('USB detection failed'));
 
       await expect(TransportNodeSerial.create()).rejects.toThrow('USB detection failed');
     });

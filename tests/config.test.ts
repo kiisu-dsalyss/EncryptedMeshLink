@@ -277,7 +277,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAotest
     it('should load default environment values', () => {
       const config = envConfig.getConfig();
       
-      expect(config.discovery.url).toBe('https://discovery.encryptedmeshlink.net/api');
+      expect(config.discovery.url).toBe('https://definitelynotamoose.com/api/discovery.php?peers=true');
       expect(config.discovery.timeout).toBe(30);
       expect(config.discovery.checkInterval).toBe(300);
       expect(config.p2p.listenPort).toBe(8447);
@@ -293,7 +293,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAotest
     });
 
     it('should provide individual config sections', () => {
-      expect(envConfig.discovery.url).toBe('https://discovery.encryptedmeshlink.net/api');
+      expect(envConfig.discovery.url).toBe('https://definitelynotamoose.com/api/discovery.php?peers=true');
       expect(envConfig.p2p.listenPort).toBe(8447);
       expect(envConfig.mesh.autoDetect).toBe(true);
       expect(envConfig.security.defaultKeySize).toBe(2048);

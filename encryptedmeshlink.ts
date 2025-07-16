@@ -1,7 +1,7 @@
 import { MeshDevice } from "@jsr/meshtastic__core";
-import { TransportNodeSerial } from "./src/transport";
+import { TransportNodeSerial } from "./src/transport/index";
 import { NodeManager } from "./src/nodeManager";
-import { EnhancedRelayHandler } from "./src/enhancedRelayHandler";
+import { EnhancedRelayHandler } from "./src/enhancedRelayHandlerModular";
 import { MessageParser } from "./src/messageParser";
 import { ConfigCLI } from "./src/configCLI";
 import { CryptoService } from "./src/crypto/index";
@@ -134,7 +134,7 @@ async function main() {
       console.log(`📱 Station node number: ${myNodeNum}`);
       
       // Initialize enhanced relay handler with bridge support
-      globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, myNodeNum);
+      globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, myNodeNum);
       relayHandler = globalRelayHandler;
       
       // Initialize bridge services for internet connectivity
@@ -232,7 +232,7 @@ async function main() {
         const fallbackNodeNum = 1000000000; // Temporary placeholder
         
         try {
-          globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, crypto, fallbackNodeNum);
+          globalRelayHandler = new EnhancedRelayHandler(device, knownNodes, config, fallbackNodeNum);
           relayHandler = globalRelayHandler;
           await relayHandler.initializeBridge();
           console.log("🌉 Internet bridge services started successfully (fallback mode)");

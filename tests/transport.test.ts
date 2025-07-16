@@ -1,4 +1,4 @@
-import { TransportNodeSerial } from '../src/transport';
+import { TransportNodeSerial } from '../src/transport/index';
 import { SerialPort } from 'serialport';
 import { findPortWithFallback } from '../src/hardware/deviceDetection';
 

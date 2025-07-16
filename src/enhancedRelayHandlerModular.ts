@@ -13,7 +13,12 @@ import { CryptoService } from './crypto/index';
 // Import modular functions
 import { initializeBridge } from './handlers/initializeBridge';
 import { stopBridge } from './handlers/stopBridge';
+import { registerLocalNodes } from './handlers/registerLocalNodes';
 import { handleRelayMessage } from './handlers/handleRelayMessage';
+import { handleStatusRequest } from './handlers/handleStatusRequest';
+import { handleListNodesRequest } from './handlers/handleListNodesRequest';
+import { handleInstructionsRequest } from './handlers/handleInstructionsRequest';
+import { handleEchoMessage } from './handlers/handleEchoMessage';
 import { handlePeerDiscovered, handlePeerLost, handleDiscoveryError } from './handlers/peerEvents';
 import { NodeInfo } from './handlers/tryLocalRelay';
 import { RemoteNodeInfo } from './handlers/tryRemoteRelay';
@@ -62,6 +67,13 @@ export class EnhancedRelayHandler {
   }
 
   /**
+   * Register local nodes for relay handling
+   */
+  async registerLocalNodes(): Promise<void> {
+    await registerLocalNodes(this.device, this.knownNodes, this.myNodeNum);
+  }
+
+  /**
    * Enhanced relay message handler with bridge support
    */
   async handleRelayMessage(packet: any, targetIdentifier: string, message: string): Promise<void> {
@@ -75,6 +87,54 @@ export class EnhancedRelayHandler {
       packet,
       targetIdentifier,
       message
+    );
+  }
+
+  /**
+   * Handle status request
+   */
+  async handleStatusRequest(packet: any): Promise<void> {
+    await handleStatusRequest(
+      this.device,
+      this.knownNodes,
+      this.remoteNodes,
+      this.myNodeNum,
+      packet
+    );
+  }
+
+  /**
+   * Handle list nodes request
+   */
+  async handleListNodesRequest(packet: any): Promise<void> {
+    await handleListNodesRequest(
+      this.device,
+      this.knownNodes,
+      this.remoteNodes,
+      this.myNodeNum,
+      packet
+    );
+  }
+
+  /**
+   * Handle instructions request
+   */
+  async handleInstructionsRequest(packet: any): Promise<void> {
+    await handleInstructionsRequest(
+      this.device,
+      this.myNodeNum,
+      packet
+    );
+  }
+
+  /**
+   * Handle echo message request
+   */
+  async handleEchoMessage(packet: any): Promise<void> {
+    await handleEchoMessage(
+      this.device,
+      this.myNodeNum,
+      packet
     );
   }
 

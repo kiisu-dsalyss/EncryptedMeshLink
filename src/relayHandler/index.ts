@@ -3,7 +3,7 @@
  * One function per file architecture for relay handling operations
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './types';
 import { handleRelayMessage } from './handleRelayMessage';
 import { handleNodesRequest } from './handleNodesRequest';

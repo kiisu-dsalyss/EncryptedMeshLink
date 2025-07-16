@@ -5,7 +5,7 @@
  * Modular implementation following "one function per file" architecture
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
 import { StationConfig } from './config/types';
 import { CryptoService } from './crypto/index.js';

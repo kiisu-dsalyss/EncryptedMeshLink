@@ -1,5 +1,5 @@
-import { Utils } from "@meshtastic/core";
-import type { Types } from "@meshtastic/core";
+import { Utils } from "@jsr/meshtastic__core";
+import type { Types } from "@jsr/meshtastic__core";
 import { SerialPort } from "serialport";
 import { findPortWithFallback } from "./hardware/deviceDetection";
 

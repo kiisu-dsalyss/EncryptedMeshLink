@@ -3,7 +3,7 @@
  * MIB-007: Enhanced Relay Handler - Main Relay Function
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { DiscoveryClient } from '../discoveryClient';
 import { CryptoService } from '../crypto/index';
 import { tryLocalRelay, NodeInfo } from './tryLocalRelay';

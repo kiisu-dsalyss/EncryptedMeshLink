@@ -3,7 +3,7 @@
  * MIB-007: Enhanced Relay Handler - Local Relay Function
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { parseTargetIdentifier } from '../common/parsers';
 
 export interface NodeInfo {

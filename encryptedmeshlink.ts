@@ -1,4 +1,4 @@
-import { MeshDevice } from "@meshtastic/core";
+import { MeshDevice } from "@jsr/meshtastic__core";
 import { TransportNodeSerial } from "./src/transport";
 import { NodeManager } from "./src/nodeManager";
 import { EnhancedRelayHandler } from "./src/enhancedRelayHandler";

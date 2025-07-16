@@ -3,7 +3,7 @@
  * Handles forwarding messages to target nodes in the mesh network
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './types';
 import { parseTargetIdentifier } from '../common';
 

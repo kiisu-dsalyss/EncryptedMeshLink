@@ -5,7 +5,7 @@ import { findPort } from '../findPort';
 // Mock dependencies
 jest.mock('serialport');
 jest.mock('../findPort');
-jest.mock('@meshtastic/core', () => ({
+jest.mock('@jsr/meshtastic__core', () => ({
   Utils: {
     toDeviceStream: {
       writable: {

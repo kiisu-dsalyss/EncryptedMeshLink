@@ -3,7 +3,7 @@
  * Sends bot usage instructions to users
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './types';
 
 export async function sendInstructions(

@@ -1,5 +1,5 @@
 import { RelayHandler, NodeInfo } from '../src/relayHandler';
-import type { MeshDevice } from '@meshtastic/core';
+import type { MeshDevice } from '@jsr/meshtastic__core';
 
 // Mock MeshDevice
 const mockDevice = {

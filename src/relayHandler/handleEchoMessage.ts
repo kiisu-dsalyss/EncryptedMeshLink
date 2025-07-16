@@ -3,7 +3,7 @@
  * Handles echo messages by sending instructions instead
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './types';
 import { sendInstructions } from './sendInstructions';
 

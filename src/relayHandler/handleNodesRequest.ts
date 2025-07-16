@@ -3,7 +3,7 @@
  * Handles requests for listing available nodes in the mesh network
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './types';
 
 export async function handleNodesRequest(

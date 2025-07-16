@@ -5,7 +5,7 @@
  * Extends the existing relay handler to support remote node routing via discovery
  */
 
-import type { MeshDevice } from "@meshtastic/core";
+import type { MeshDevice } from "@jsr/meshtastic__core";
 import { DiscoveryClient, DiscoveredPeer } from './discoveryClient';
 import { StationConfig } from './config/types';
 import { NodeRegistryManager } from './nodeRegistry/manager';

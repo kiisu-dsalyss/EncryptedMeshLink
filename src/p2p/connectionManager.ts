@@ -28,14 +28,19 @@ interface ActiveConnection extends P2PConnection {
 /**
  * Find an available port starting from the preferred port
  */
-async function findAvailablePort(preferredPort: number, maxAttempts: number = 10): Promise<number> {
+async function findAvailablePort(preferredPort: number, maxAttempts: number = 50): Promise<number> {
+  console.log(`🔍 Searching for available port starting from ${preferredPort}...`);
   for (let i = 0; i < maxAttempts; i++) {
     const port = preferredPort + i;
+    console.log(`🔍 Checking port ${port}...`);
     if (await isPortAvailable(port)) {
+      if (port !== preferredPort) {
+        console.log(`✅ Found available port: ${port} (preferred ${preferredPort} was busy)`);
+      }
       return port;
     }
   }
-  throw new Error(`No available port found starting from ${preferredPort}`);
+  throw new Error(`No available port found in range ${preferredPort}-${preferredPort + maxAttempts - 1}`);
 }
 
 /**
@@ -44,13 +49,20 @@ async function findAvailablePort(preferredPort: number, maxAttempts: number = 10
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net.createServer();
+    const timeout = setTimeout(() => {
+      server.close();
+      resolve(false);
+    }, 100); // 100ms timeout for faster scanning
+    
     server.listen(port, () => {
+      clearTimeout(timeout);
       server.once('close', () => {
         resolve(true);
       });
       server.close();
     });
     server.on('error', () => {
+      clearTimeout(timeout);
       resolve(false);
     });
   });
@@ -246,26 +258,36 @@ export class P2PConnectionManager extends EventEmitter {
   }
 
   private async startWebSocketServer(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.wsServer = new WebSocketServer({ 
-        port: this.config.localPort + 1,
-        clientTracking: true
-      });
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Find an available port starting from TCP port + 1
+        const wsPort = await findAvailablePort(this.config.localPort + 1);
+        if (wsPort !== this.config.localPort + 1) {
+          console.log(`🔄 WebSocket port ${this.config.localPort + 1} in use, using ${wsPort} instead`);
+        }
 
-      this.wsServer.on('connection', (ws: WebSocket, req: any) => {
-        this.handleIncomingWebSocketConnection(ws, req);
-      });
+        this.wsServer = new WebSocketServer({ 
+          port: wsPort,
+          clientTracking: true
+        });
 
-      this.wsServer.on('error', (error: Error) => {
-        console.error('WebSocket server error:', error);
-        this.stats.connectionErrors++;
+        this.wsServer.on('connection', (ws: WebSocket, req: any) => {
+          this.handleIncomingWebSocketConnection(ws, req);
+        });
+
+        this.wsServer.on('error', (error: Error) => {
+          console.error('WebSocket server error:', error);
+          this.stats.connectionErrors++;
+          reject(error);
+        });
+
+        this.wsServer.on('listening', () => {
+          console.log(`🌐 WebSocket server listening on port ${wsPort}`);
+          resolve();
+        });
+      } catch (error) {
         reject(error);
-      });
-
-      this.wsServer.on('listening', () => {
-        console.log(`📡 WebSocket server listening on port ${this.config.localPort + 1}`);
-        resolve();
-      });
+      }
     });
   }
 

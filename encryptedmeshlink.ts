@@ -16,7 +16,6 @@ import { handleEchoMessage } from "./src/handlers/handleEchoMessage";
 import { registerLocalNodes } from "./src/handlers/registerLocalNodes";
 import { handlePeerDiscovered, handlePeerLost, handleDiscoveryError } from "./src/handlers/peerEvents";
 import { integrateDelayedDelivery } from "./src/delayedDelivery";
-import * as path from 'path';
 
 // Global cleanup state
 let globalDiscoveryClient: any = null;

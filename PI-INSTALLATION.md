@@ -38,6 +38,27 @@ chmod +x install-pi.sh
 
 ## Auto-Update Features
 
+### Update Frequency & Timing
+
+By default, the Pi checks for updates **every 1 hour**. You can customize this:
+
+- **Minimum**: 1 hour (for rapid development)
+- **Maximum**: 168 hours (1 week)
+- **Recommended**: 1-6 hours for production use
+
+```bash
+# Change update frequency
+~/EncryptedMeshLink/scripts/pi-manager.sh update-interval 6  # Every 6 hours
+~/EncryptedMeshLink/scripts/pi-manager.sh update-interval    # Show current setting
+```
+
+### Update Timing
+
+- First check: 30 seconds after startup
+- Subsequent checks: Every N hours from startup time
+- Updates only occur if new commits are detected
+- Updates are atomic (succeed completely or rollback)
+
 ### What Gets Updated Automatically
 
 - ✅ Code updates from the specified Git branch
@@ -87,6 +108,10 @@ After installation, use the management script for control:
 # Enable/disable auto-updates
 ~/EncryptedMeshLink/scripts/pi-manager.sh auto-update off
 ~/EncryptedMeshLink/scripts/pi-manager.sh auto-update on
+
+# Change update interval
+~/EncryptedMeshLink/scripts/pi-manager.sh update-interval 6  # Every 6 hours
+~/EncryptedMeshLink/scripts/pi-manager.sh update-interval 24 # Once daily
 
 # Complete reset
 ~/EncryptedMeshLink/scripts/pi-manager.sh reset

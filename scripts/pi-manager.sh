@@ -45,6 +45,7 @@ show_help() {
     echo "  health                    Detailed health check"
     echo "  reset                     Complete reset and rebuild"
     echo "  auto-update [on|off]      Enable/disable auto-updates"
+    echo "  update-interval [hours]   Set update check interval"
     echo "  backup                    Create backup of current setup"
     echo "  restore [backup-name]     Restore from backup"
     echo ""
@@ -58,6 +59,7 @@ show_help() {
     echo "  $0 update --force         # Force update"
     echo "  $0 logs --follow          # Watch logs live"
     echo "  $0 auto-update off        # Disable auto-updates"
+    echo "  $0 update-interval 6      # Check for updates every 6 hours"
 }
 
 check_installation() {
@@ -318,6 +320,43 @@ toggle_auto_update() {
     esac
 }
 
+set_update_interval() {
+    local hours="$1"
+    
+    if [ -z "$hours" ]; then
+        # Show current interval
+        if [ -f ".env.pi" ]; then
+            CURRENT=$(grep "ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS" .env.pi | cut -d'=' -f2 2>/dev/null || echo "1")
+        else
+            CURRENT=$(docker exec eml-pi-station env | grep "ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS" | cut -d'=' -f2 2>/dev/null || echo "1")
+        fi
+        print_info "Current update interval: ${CURRENT} hour(s)"
+        echo "Usage: $0 update-interval [hours]"
+        echo "Example: $0 update-interval 6  # Check every 6 hours"
+        return 0
+    fi
+    
+    # Validate input
+    if ! [[ "$hours" =~ ^[0-9]+$ ]] || [ "$hours" -lt 1 ] || [ "$hours" -gt 168 ]; then
+        print_error "Invalid interval. Please specify hours between 1 and 168 (1 week)"
+        return 1
+    fi
+    
+    print_info "Setting update interval to $hours hour(s)..."
+    
+    # Update environment file
+    if [ -f ".env.pi" ]; then
+        sed -i "s/ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS=.*/ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS=$hours/" .env.pi
+    fi
+    
+    # Update Docker environment and restart
+    export ENCRYPTEDMESHLINK_UPDATE_INTERVAL_HOURS=$hours
+    docker-compose -f docker-compose.pi.yml up -d
+    
+    print_status "Update interval set to $hours hour(s)"
+    print_info "Next update check will occur within $hours hour(s)"
+}
+
 # Main script logic
 if [ $# -eq 0 ]; then
     show_help
@@ -351,6 +390,10 @@ case "$1" in
     auto-update)
         shift
         toggle_auto_update "$@"
+        ;;
+    update-interval)
+        shift
+        set_update_interval "$@"
         ;;
     help|--help|-h)
         show_help

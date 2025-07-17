@@ -299,17 +299,10 @@ class MockStationServer {
                     // Parameters: targetStation, fromNode, toNode, message
                     // fromStation = where to send response, toNode = who is responding, fromNode = original sender
                     if (this.bridgeClient) {
-                        console.log(`🔧 DEBUG: About to call sendUserMessage with parameters:`);
-                        console.log(`   targetStation: "${fromStation}"`);
-                        console.log(`   fromNode: ${toNode}`);
-                        console.log(`   toNode: ${fromNode}`);
-                        console.log(`   message: "${response}"`);
-                        console.log(`🔧 DEBUG: Calling bridgeClient.sendUserMessage now...`);
                         try {
-                            await this.bridgeClient.sendUserMessage(fromStation, toNode, fromNode, response);
-                            console.log(`✅ DEBUG: sendUserMessage completed successfully`);
+                            await this.bridgeClient.sendMessage(fromStation, response);
                         } catch (error) {
-                            console.error(`❌ DEBUG: sendUserMessage failed:`, error);
+                            console.error(`❌ Failed to send auto-response:`, error);
                         }
                     }
                 } else {

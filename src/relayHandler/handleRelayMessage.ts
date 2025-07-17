@@ -15,22 +15,21 @@ export async function handleRelayMessage(
   targetIdentifier: string,
   message: string
 ): Promise<void> {
-  console.log(`🔄 Relay request: Forward "${message}" to "${targetIdentifier}"`);
-  
   // Use enhanced node matching
   const matchResult = findBestNodeMatch(knownNodes, targetIdentifier);
   
   if (matchResult) {
     const { node, nodeId, matchScore, isOnline, matchType } = matchResult;
     
-    // Log match details
-    const onlineStatus = isOnline ? "🟢 ONLINE" : "🔴 OFFLINE";
-    const matchDetails = `${matchScore}% match (${matchType})`;
-    console.log(`📤 Best match: ${node.user?.longName || 'Unknown'} (${nodeId}) - ${onlineStatus} - ${matchDetails}`);
-    
-    // Show warning for offline nodes or low-confidence matches
-    if (!isOnline && matchScore < 90) {
-      console.log(`⚠️  Warning: Target node is offline and match confidence is ${matchScore}%`);
+    // Only log detailed match info for fuzzy matches or warnings
+    if (matchType === 'fuzzy_name' || (!isOnline && matchScore < 90)) {
+      const onlineStatus = isOnline ? "🟢 ONLINE" : "🔴 OFFLINE";
+      const matchDetails = `${matchScore}% match (${matchType})`;
+      console.log(`📤 Best match: ${node.user?.longName || 'Unknown'} (${nodeId}) - ${onlineStatus} - ${matchDetails}`);
+      
+      if (!isOnline && matchScore < 90) {
+        console.log(`⚠️  Warning: Target node is offline and match confidence is ${matchScore}%`);
+      }
     }
     
     try {
@@ -41,7 +40,6 @@ export async function handleRelayMessage(
       // Put ID first for clickable links, then name for readability
       const relayMessage = `[From ${packet.from} (${senderName})]: ${message}`;
       await device.sendText(relayMessage, nodeId);
-      console.log("✅ Message relayed successfully");
       
       // Enhanced confirmation with match details
       const targetName = node.user?.longName || node.user?.shortName || `Node-${nodeId}`;

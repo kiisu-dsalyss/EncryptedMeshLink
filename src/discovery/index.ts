@@ -164,7 +164,6 @@ export class DiscoveryClientModular extends EventEmitter {
 
   private async runPeerDiscovery(): Promise<void> {
     try {
-      console.log('🔍 Running peer discovery...');
       const currentPeers = await this.discoverPeers();
       this.processPeerChanges(currentPeers);
     } catch (error) {
@@ -173,7 +172,6 @@ export class DiscoveryClientModular extends EventEmitter {
   }
 
   private processPeerChanges(currentPeers: DiscoveredPeer[]): void {
-    console.log(`🔧 DEBUG: Processing ${currentPeers.length} discovered peers`);
     const currentPeerIds = new Set(currentPeers.map(p => p.stationId));
     const lastPeerIds = new Set(this.lastKnownPeers.map(p => p.stationId));
 
@@ -195,7 +193,6 @@ export class DiscoveryClientModular extends EventEmitter {
 
     // Update last known peers
     this.lastKnownPeers = currentPeers;
-    console.log(`🔧 DEBUG: Updated last known peers to ${this.lastKnownPeers.length} peers`);
   }
 
   private async getPublicIP(): Promise<string> {
@@ -236,8 +233,6 @@ export class DiscoveryClientModular extends EventEmitter {
 
       if (body && (method === 'POST' || method === 'PUT')) {
         options.body = JSON.stringify(body);
-        console.log(`🔧 DEBUG: Sending ${method} request to ${url}`);
-        console.log(`🔧 DEBUG: Request body:`, JSON.stringify(body, null, 2));
       }
 
       const response = await fetch(url, options);

@@ -12,13 +12,13 @@ export async function discoverPeers(
   makeRequest: (method: string, path: string, body?: any) => Promise<DiscoveryResponse>
 ): Promise<DiscoveredPeer[]> {
   try {
-    console.log('🔧 DEBUG: Making GET request for peers discovery');
     const response = await makeRequest('GET', '?peers=true');
-    console.log('🔧 DEBUG: Peer discovery response:', JSON.stringify(response, null, 2));
     
     if (response.success && response.data) {
       const rawPeers = response.data.peers || [];
-      console.log(`🔍 Discovered ${rawPeers.length} peers`);
+      if (rawPeers.length > 0) {
+        console.log(`🔍 Discovered ${rawPeers.length} peers`);
+      }
       
       // Transform snake_case to camelCase
       return rawPeers.map((peer: any) => ({
@@ -28,7 +28,6 @@ export async function discoverPeers(
         lastSeen: peer.last_seen
       }));
     } else {
-      console.log(`ℹ️ No peers discovered: ${response.error || 'Empty response'}`);
       return [];
     }
   } catch (error) {

@@ -191,40 +191,40 @@ cd "$INSTALL_DIR"
 case "${1:-status}" in
     start)
         echo "🚀 Starting EncryptedMeshLink..."
-        docker-compose -f docker-compose.pi.yml up -d
+        docker-compose -f docker-compose.pi-prebuilt.yml up -d
         echo "✅ Started! Check status with: $0 status"
         ;;
     stop)
         echo "🛑 Stopping EncryptedMeshLink..."
-        docker-compose -f docker-compose.pi.yml down
+        docker-compose -f docker-compose.pi-prebuilt.yml down
         echo "✅ Stopped"
         ;;
     restart)
         echo "🔄 Restarting EncryptedMeshLink..."
-        docker-compose -f docker-compose.pi.yml restart
+        docker-compose -f docker-compose.pi-prebuilt.yml restart
         echo "✅ Restarted"
         ;;
     status)
         echo "📊 EncryptedMeshLink Status:"
         echo "=========================="
-        docker-compose -f docker-compose.pi.yml ps
+        docker-compose -f docker-compose.pi-prebuilt.yml ps
         echo ""
         echo "💾 Memory Usage:"
         docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}" | head -2
         ;;
     logs)
         echo "📋 Recent logs:"
-        docker-compose -f docker-compose.pi.yml logs --tail=50 "${2:-}"
+        docker-compose -f docker-compose.pi-prebuilt.yml logs --tail=50 "${2:-}"
         ;;
     logs-follow)
         echo "📋 Following logs (Ctrl+C to exit):"
-        docker-compose -f docker-compose.pi.yml logs --follow "${2:-}"
+        docker-compose -f docker-compose.pi-prebuilt.yml logs --follow "${2:-}"
         ;;
     update)
         echo "🔄 Updating EncryptedMeshLink..."
         git pull
-        docker-compose -f docker-compose.pi.yml pull
-        docker-compose -f docker-compose.pi.yml up -d
+        docker-compose -f docker-compose.pi-prebuilt.yml pull
+        docker-compose -f docker-compose.pi-prebuilt.yml up -d
         echo "✅ Updated and restarted"
         ;;
     *)
@@ -251,15 +251,15 @@ chmod +x scripts/pi-control.sh
 print_status "Management script created: ~/EncryptedMeshLink/scripts/pi-control.sh"
 
 # Start the application
-print_info "Starting EncryptedMeshLink..."
+print_info "Starting EncryptedMeshLink with prebuilt image..."
 
 # Give Docker group permission time to take effect if we just installed it
 if ! docker ps &> /dev/null; then
     print_warning "Need to refresh group permissions for Docker"
     print_info "Starting application with sudo (first run only)..."
-    sudo docker-compose -f docker-compose.pi.yml up -d
+    sudo docker-compose -f docker-compose.pi-prebuilt.yml up -d
 else
-    docker-compose -f docker-compose.pi.yml up -d
+    docker-compose -f docker-compose.pi-prebuilt.yml up -d
 fi
 
 # Wait a moment for startup

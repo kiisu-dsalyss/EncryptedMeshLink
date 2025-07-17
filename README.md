@@ -4,49 +4,64 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 
 ## 🚀 Quick Start - One Command Setup
 
-### For Raspberry Pi with Auto-Updates (RECOMMENDED)
+### Primary Installation (RECOMMENDED) 🌟
 
-**Complete installation with automatic updates and Pi optimizations:**
+**Fast setup with pre-built Docker images - works on all platforms:**
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/quick-install-pi.sh | bash
+curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/setup.sh | bash
 ```
 
-This advanced installer provides:
+This installer provides:
 
-- ✅ **Full Auto-Update System** - Automatic hourly updates from Git
-- ✅ **Pi-Optimized Configuration** - 1GB memory, 60s discovery timeout, enhanced stability
-- ✅ **Heartbeat Monitoring** - Real-time monitoring and failure analysis tools
-- ✅ **Systemd Integration** - Auto-start on boot with service management
-- ✅ **Health Monitoring** - Automatic restart on failure with comprehensive diagnostics
-- ✅ **Management Tools** - Built-in status, logs, and control commands
-- ✅ **A/B Deployment** - Zero-downtime updates with automatic rollback
-- ✅ **Troubleshooting Tools** - Enhanced diagnostics for network and resource issues
+- ✅ **Fast Installation** - Downloads pre-built images (2-3 minutes vs 20+ minute builds!)
+- ✅ **Auto-Detection** - Automatically detects Pi vs x86_64 and configures appropriately
+- ✅ **Docker Management** - Installs Docker and Docker Compose if needed
+- ✅ **Instant Start** - Application running immediately after install
+- ✅ **Management Tools** - Built-in control script for status, logs, updates
+- ✅ **Platform Optimized** - Pi gets memory limits, x86_64 gets full resources
+- ✅ **No Build Time** - Uses pre-built images from GitHub Container Registry
 
-**Perfect for production Pi deployments!** Includes optimized timeouts and resource limits specifically tuned for Raspberry Pi hardware. See [PI-INSTALLATION.md](PI-INSTALLATION.md) for full details.
+**Perfect for all users - especially Pi users who don't want to wait 20 minutes for builds!**
 
-### For Manual Control (Preferred by Advanced Users)
+### Manual Installation (Advanced Users)
 
-**No system modifications, no interactive prompts, perfect for SSH:**
+**For users who want full control:**
 
 ```bash
 cd ~
 git clone https://github.com/kiisu-dsalyss/EncryptedMeshLink.git
 cd EncryptedMeshLink
-docker-compose -f docker-compose.pi.yml up -d
+
+# For Raspberry Pi (prebuilt images):
+docker-compose -f docker-compose.pi-prebuilt.yml up -d
+
+# For x86_64 Linux:
+docker-compose up -d
 ```
 
 This manual approach:
 
-- ✅ **No system upgrades** that cause interactive prompts  
-- ✅ **No automated package installation** that might conflict
-- ✅ **Full user control** over what gets installed
-- ✅ **Works perfectly over SSH** without getting stuck on dialogs
-- ✅ **Simple and predictable** - just Docker containers
+- ✅ **No system modifications** - just clones repo and starts containers  
+- ✅ **Works perfectly over SSH** - no interactive prompts
+- ✅ **Full user control** - you manage everything
+- ✅ **Simple and predictable** - standard Docker workflow
 
-See [MANUAL-PI-INSTALL.md](MANUAL-PI-INSTALL.md) for complete manual installation guide.
+### Alternative: Pi Quick Install (Legacy)
 
-### For Quick Testing (All Linux Systems)
+⚠️ **Note: This method is slower and may have issues**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/quick-install-pi.sh | bash
+```
+
+This legacy installer:
+- ❌ **May build locally** on some configurations (20+ minutes)
+- ❌ **Can get stuck** on system upgrade prompts via SSH
+- ✅ **Has auto-updates** and advanced monitoring
+- ❌ **Not recommended** unless you specifically need the auto-update features
+
+**Use the primary setup.sh installer instead!**
 
 **Basic setup without auto-updates:**
 

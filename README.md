@@ -4,15 +4,34 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 
 ## 🚀 Quick Start - One Command Setup
 
-### For End Users (Raspberry Pi/Linux) - RECOMMENDED
+### For Raspberry Pi with Auto-Updates (RECOMMENDED)
 
-**No Docker or Node.js knowledge required!** Just run:
+**Complete installation with automatic updates:**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/quick-install-pi.sh | bash
+```
+
+This advanced installer provides:
+
+- ✅ **Full Auto-Update System** - Automatic hourly updates from Git
+- ✅ **Systemd Integration** - Auto-start on boot with service management
+- ✅ **Health Monitoring** - Automatic restart on failure
+- ✅ **Management Tools** - Built-in status, logs, and control commands
+- ✅ **A/B Deployment** - Zero-downtime updates with automatic rollback
+- ✅ **Comprehensive Logging** - Update tracking and troubleshooting tools
+
+**Perfect for production Pi deployments!** See [PI-INSTALLATION.md](PI-INSTALLATION.md) for full details.
+
+### For Quick Testing (All Linux Systems)
+
+**Basic setup without auto-updates:**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/setup | bash
 ```
 
-This will:
+This basic installer provides:
 
 - ✅ **Install Docker automatically** (if not present)
 - ✅ **Download pre-built images** (2-3 minutes vs 20+ minute builds)
@@ -21,7 +40,7 @@ This will:
 - ✅ **Start the service** immediately
 - ✅ **Show logs and status** when complete
 
-**Perfect for beta testers and quick Pi deployment!**
+**Perfect for beta testing and development!**
 
 ## Current Status - PRODUCTION READY! 🎉
 

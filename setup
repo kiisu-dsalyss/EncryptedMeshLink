@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# EncryptedMeshLink Setup Script
+# Simple wrapper for one-command installation
+
+set -e
+
+echo "🥧 EncryptedMeshLink Setup"
+echo "=========================="
+echo ""
+
+# Check if we're on a supported system
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo "✅ Linux system detected"
+else
+    echo "❌ This setup script is designed for Linux systems (like Raspberry Pi OS)"
+    echo "   For other systems, please check the documentation."
+    exit 1
+fi
+
+# Check architecture
+ARCH=$(uname -m)
+case $ARCH in
+    aarch64|arm64|armv7l)
+        echo "✅ ARM architecture detected ($ARCH) - perfect for Raspberry Pi!"
+        ;;
+    x86_64)
+        echo "🖥️  x86_64 detected - this will work but is optimized for Raspberry Pi"
+        ;;
+    *)
+        echo "⚠️  Unknown architecture: $ARCH - continuing anyway..."
+        ;;
+esac
+
+echo ""
+echo "📥 Downloading and running the installation script..."
+echo ""
+
+# Download and run the quick deploy script
+curl -fsSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/scripts/quick-deploy-pi.sh | bash
+
+# Check if the installation was successful
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "🎉 Setup completed successfully!"
+    echo ""
+    echo "📋 Quick reference:"
+    echo "   Project location: ~/encryptedmeshlink"
+    echo "   View logs:        cd ~/encryptedmeshlink && docker-compose logs -f"
+    echo "   Service status:   cd ~/encryptedmeshlink && docker-compose ps"
+    echo ""
+else
+    echo ""
+    echo "❌ Setup failed. Please check the error messages above."
+    echo "   For help, visit: https://github.com/kiisu-dsalyss/EncryptedMeshLink"
+    exit 1
+fi

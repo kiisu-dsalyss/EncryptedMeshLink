@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Raspberry Pi deployment using pre-built images
+  encryptedmeshlink-pi:
+    image: ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
+    container_name: eml-pi-station
+    restart: unless-stopped
+    
+    # Environment configuration for Pi
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTEDMESHLINK_AUTO_UPDATE=false  # Using Docker images instead
+      - EML_LOCAL_TESTING=false
+    
+    # Volume mounts for persistence
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    
+    # Network configuration
+    ports:
+      - "8447:8447"  # P2P communication port
+      - "3000:3000"  # Optional web interface
+    
+    # USB device access for Meshtastic
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyACM0:/dev/ttyACM0
+    
+    # Privileged access for hardware detection
+    privileged: true
+    
+    # Health check optimized for Pi
+    healthcheck:
+      test: ["CMD", "npx", "tsx", "encryptedmeshlink.ts", "--health-check"]
+      interval: 60s
+      timeout: 30s
+      retries: 2
+      start_period: 30s
+    
+    # Resource limits for Raspberry Pi
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Optional: Local discovery server for testing
+  discovery-server:
+    image: ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
+    container_name: eml-discovery-local
+    restart: unless-stopped
+    command: ["npx", "tsx", "src/testing/localDiscoveryServer.ts"]
+    ports:
+      - "8899:8899"
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - testing
+    deploy:
+      resources:
+        limits:
+          memory: 128M

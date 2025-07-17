@@ -6,7 +6,7 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 
 ### For Raspberry Pi with Auto-Updates (RECOMMENDED)
 
-**Complete installation with automatic updates:**
+**Complete installation with automatic updates and Pi optimizations:**
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/quick-install-pi.sh | bash
@@ -15,13 +15,15 @@ curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/mast
 This advanced installer provides:
 
 - ✅ **Full Auto-Update System** - Automatic hourly updates from Git
+- ✅ **Pi-Optimized Configuration** - 1GB memory, 60s discovery timeout, enhanced stability
+- ✅ **Heartbeat Monitoring** - Real-time monitoring and failure analysis tools
 - ✅ **Systemd Integration** - Auto-start on boot with service management
-- ✅ **Health Monitoring** - Automatic restart on failure
+- ✅ **Health Monitoring** - Automatic restart on failure with comprehensive diagnostics
 - ✅ **Management Tools** - Built-in status, logs, and control commands
 - ✅ **A/B Deployment** - Zero-downtime updates with automatic rollback
-- ✅ **Comprehensive Logging** - Update tracking and troubleshooting tools
+- ✅ **Troubleshooting Tools** - Enhanced diagnostics for network and resource issues
 
-**Perfect for production Pi deployments!** See [PI-INSTALLATION.md](PI-INSTALLATION.md) for full details.
+**Perfect for production Pi deployments!** Includes optimized timeouts and resource limits specifically tuned for Raspberry Pi hardware. See [PI-INSTALLATION.md](PI-INSTALLATION.md) for full details.
 
 ### For Quick Testing (All Linux Systems)
 
@@ -42,9 +44,9 @@ This basic installer provides:
 
 **Perfect for beta testing and development!**
 
-## Current Status - PRODUCTION READY! 🎉
+## Current Status 🎉
 
-### ✅ Core Features (COMPLETE)
+### ✅ Core Features (Complete)
 
 - 📡 **Local Mesh Relay** - Routes messages within mesh using `@{identifier}` format
 - 🔍 **USB Auto-Detection** - Finds and connects to Meshtastic devices automatically  
@@ -53,7 +55,7 @@ This basic installer provides:
 - 🔧 **Robust Error Handling** - Graceful PKI timeout management and auto-recovery
 - 🏗️ **Modular Architecture** - Clean TypeScript implementation with separation of concerns
 
-### ✅ Advanced Features (COMPLETE & PRODUCTION READY)
+### ✅ Advanced Features (Complete)
 
 - ✅ **Station Configuration** - JSON config with RSA keys and validation
 - ✅ **Discovery Service** - PHP service ready for deployment to your hosting
@@ -79,9 +81,9 @@ This basic installer provides:
 
 **Note**: The discovery service is for peer discovery only. Direct P2P message relay uses TCP/WebSocket connections.
 
-## What Works Right Now - COMPLETE SYSTEM! 🚀
+## What Works Right Now - Complete System! 🚀
 
-🎯 **Production-ready features:**
+🎯 **Implemented features:**
 
 1. **Direct P2P Messaging**: Stations communicate directly via TCP/WebSocket with encrypted channels
 2. **Bidirectional Auto-responses**: Send `@rAlpha hello` and get automatic responses from remote nodes
@@ -292,7 +294,7 @@ The system uses a comprehensive bridge message protocol with:
 
 ```text
 ├── encryptedmeshlink.ts # ✅ Main EncryptedMeshLink application  
-├── src/                 # ✅ Core application modules (PRODUCTION READY)
+├── src/                 # ✅ Core application modules
 │   ├── transport.ts     # ✅ Meshtastic device communication
 │   ├── relayHandler.ts  # ✅ Message relay and processing
 │   ├── nodeManager.ts   # ✅ Node tracking and management
@@ -341,7 +343,7 @@ The system uses a comprehensive bridge message protocol with:
 └── README.md           # 📖 This file
 ```
 
-**Legend:** ✅ Complete & Production Ready | 📖 Documentation
+**Legend:** ✅ Complete | 📖 Documentation
 
 ## Dependencies
 
@@ -353,6 +355,62 @@ The system uses a comprehensive bridge message protocol with:
 - `jest` - Testing framework with comprehensive test coverage
 - `better-sqlite3` - SQLite database for message persistence
 - `ws` - WebSocket server/client for P2P communication
+
+## Raspberry Pi Management & Troubleshooting
+
+### Pi-Specific Optimizations
+
+The Pi installation includes hardware-specific optimizations:
+
+- **Memory Management**: 1GB limit with 512MB reservation (vs 512MB default)
+- **Discovery Timeouts**: 60-second timeout (vs 30s default) for stable connections
+- **Health Checks**: 120-second intervals with enhanced retry logic
+- **Resource Monitoring**: Built-in CPU and memory usage tracking
+- **Heartbeat Analysis**: Real-time monitoring of discovery service connectivity
+
+### Management Commands
+
+After installation, use the management script for Pi operations:
+
+```bash
+# Check comprehensive status and health
+sudo /opt/encryptedmeshlink/scripts/pi-manager.sh health
+
+# Monitor heartbeat status in real-time
+sudo /opt/encryptedmeshlink/scripts/pi-manager.sh heartbeat-monitor
+
+# Restart with optimized settings
+sudo /opt/encryptedmeshlink/scripts/pi-manager.sh restart
+
+# View live logs
+sudo /opt/encryptedmeshlink/scripts/pi-manager.sh logs --follow
+
+# Check auto-update status
+sudo /opt/encryptedmeshlink/scripts/pi-manager.sh status
+```
+
+### Troubleshooting Heartbeat Issues
+
+If experiencing periodic heartbeat failures:
+
+1. **Check current health status**:
+   ```bash
+   sudo /opt/encryptedmeshlink/scripts/pi-manager.sh health
+   ```
+
+2. **Monitor failures in real-time**:
+   ```bash
+   sudo /opt/encryptedmeshlink/scripts/pi-manager.sh heartbeat-monitor
+   ```
+
+3. **Optimize configuration**:
+   ```bash
+   sudo /opt/encryptedmeshlink/scripts/pi-manager.sh optimize
+   ```
+
+For detailed troubleshooting, see:
+- [PI-TROUBLESHOOTING.md](PI-TROUBLESHOOTING.md) - Complete diagnostic guide
+- [PI-OPTIMIZATION-SUMMARY.md](PI-OPTIMIZATION-SUMMARY.md) - Performance improvements
 
 ## Development
 

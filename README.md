@@ -49,11 +49,16 @@ docker restart eml-station
 # Stop container
 docker stop eml-station
 
+# Remove container (if needed)
+docker stop eml-station && docker rm eml-station
+
 # Update to latest Pi image
 docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
 docker stop eml-station && docker rm eml-station
 # Then re-run the quick-setup.sh command
 ```
+
+**Note**: The quick-setup script uses `docker run` directly, not docker-compose. Use the commands above for container management.
 
 ### Primary Installation (RECOMMENDED) 🌟
 
@@ -217,6 +222,10 @@ This basic installer provides:
 
 #### Managing Your Station
 
+#### Managing Primary Installation (setup.sh)
+
+After using the primary `setup.sh` installer, manage your station with these commands:
+
 ```bash
 cd ~/encryptedmeshlink
 
@@ -236,6 +245,8 @@ docker-compose down
 docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
 docker-compose up -d
 ```
+
+**Note**: The primary installer uses docker-compose for advanced container management.
 
 ### Manual Docker Setup
 

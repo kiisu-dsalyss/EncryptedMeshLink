@@ -7,6 +7,7 @@ import { DiscoveryClientModular, DiscoveredPeer } from '../discovery/index';
 import { CryptoService } from '../crypto/index';
 import { parseTargetIdentifier } from '../common/parsers';
 import { RemoteNodeInfo } from './peerEvents';
+import { sendMessage } from '../utils/messageSplitter';
 
 export async function tryRemoteRelay(
   discoveryClient: DiscoveryClientModular | undefined,
@@ -91,7 +92,7 @@ export async function tryRemoteRelay(
       // Actually send the auto-reply back through the mesh device
       if (device) {
         try {
-          await device.sendText(autoReplyMessage, fromNodeId);
+          await sendMessage(device, autoReplyMessage, fromNodeId);
           console.log(`📤 Auto-reply sent to mesh node ${fromNodeId}`);
         } catch (error) {
           console.error(`❌ Failed to send auto-reply:`, error);

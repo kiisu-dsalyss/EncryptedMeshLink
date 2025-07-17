@@ -2,6 +2,7 @@ import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './tryLocalRelay';
 import { RemoteNodeInfo } from './peerEvents';
 import { DiscoveryClientModular } from '../discovery/index';
+import { sendMessage } from '../utils/messageSplitter';
 
 /**
  * Handle status request from mesh network
@@ -36,7 +37,7 @@ export async function handleStatusRequest(
     const statusMessage = statusLines.join('\n');
     
     if (packet.from && packet.from !== myNodeNum) {
-      await device.sendText(statusMessage, packet.from);
+      await sendMessage(device, statusMessage, packet.from);
       console.log(`📤 Sent concise status to node ${packet.from}`);
     }
     
@@ -46,7 +47,7 @@ export async function handleStatusRequest(
     // Send error response if possible
     if (packet.from && packet.from !== myNodeNum) {
       try {
-        await device.sendText("❌ Status request failed", packet.from);
+        await sendMessage(device, "❌ Status request failed", packet.from);
       } catch (sendError) {
         console.error("❌ Failed to send error response:", sendError);
       }

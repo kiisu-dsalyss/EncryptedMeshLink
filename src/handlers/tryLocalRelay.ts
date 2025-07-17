@@ -5,6 +5,7 @@
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
 import { parseTargetIdentifier } from '../common/parsers';
+import { sendMessage } from '../utils/messageSplitter';
 
 export interface NodeInfo {
   num: number;
@@ -73,13 +74,13 @@ export async function tryLocalRelay(
       const relayedMessage = `📩 From ${senderName}: ${message}`;
       
       // Send the message to the local node
-      await device.sendText(relayedMessage, targetNode.num);
+      await sendMessage(device, relayedMessage, targetNode.num);
       console.log(`📨 Local relay successful to node ${targetNode.num}`);
       
       // Send confirmation back to the sender
       const targetName = targetNode.user?.longName || targetNode.user?.shortName || `Node ${targetNode.num}`;
       const confirmationMessage = `✅ Message relayed to ${targetName}`;
-      await device.sendText(confirmationMessage, packet.from);
+      await sendMessage(device, confirmationMessage, packet.from);
       console.log(`📤 Confirmation sent to sender (${packet.from})`);
       
       return true;

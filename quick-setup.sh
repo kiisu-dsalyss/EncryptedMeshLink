@@ -37,8 +37,9 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Create directories
-mkdir -p ~/encryptedmeshlink/{config,data,logs}
-cd ~/encryptedmeshlink
+EML_DIR="$HOME/encryptedmeshlink"
+mkdir -p "$EML_DIR"/{config,data,logs}
+cd "$EML_DIR"
 
 echo "📥 Pulling Docker image: $IMAGE"
 if ! docker ps &> /dev/null; then
@@ -56,9 +57,9 @@ if ! docker ps &> /dev/null; then
         --device /dev/ttyUSB0:/dev/ttyUSB0 \
         --device /dev/ttyACM0:/dev/ttyACM0 \
         --privileged \
-        -v ./config:/app/config \
-        -v ./data:/app/data \
-        -v ./logs:/app/logs \
+        -v "$EML_DIR/config:/app/config" \
+        -v "$EML_DIR/data:/app/data" \
+        -v "$EML_DIR/logs:/app/logs" \
         "$IMAGE"
 else
     docker run -d \
@@ -68,16 +69,16 @@ else
         --device /dev/ttyUSB0:/dev/ttyUSB0 \
         --device /dev/ttyACM0:/dev/ttyACM0 \
         --privileged \
-        -v ./config:/app/config \
-        -v ./data:/app/data \
-        -v ./logs:/app/logs \
+        -v "$EML_DIR/config:/app/config" \
+        -v "$EML_DIR/data:/app/data" \
+        -v "$EML_DIR/logs:/app/logs" \
         "$IMAGE"
 fi
 
 echo ""
 echo -e "${GREEN}✅ EncryptedMeshLink is running!${NC}"
 echo ""
-echo "📁 Files: ~/encryptedmeshlink/"
+echo "📁 Files: $EML_DIR/"
 echo "📊 Status: docker ps"
 echo "📋 Logs: docker logs eml-station"
 echo "🔄 Restart: docker restart eml-station"

@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# EncryptedMeshLink Setup Script
-# Simple wrapper for one-command installation
+# EncryptedMeshLink One-Command Setup
+# Works with or without Docker pre-installed
+# Usage: curl -fsSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/setup | bash
 
 set -e
 
-echo "🥧 EncryptedMeshLink Setup"
-echo "=========================="
+echo "🚀 EncryptedMeshLink One-Command Setup"
+echo "======================================"
 echo ""
 
 # Check if we're on a supported system
@@ -23,35 +24,178 @@ ARCH=$(uname -m)
 case $ARCH in
     aarch64|arm64|armv7l)
         echo "✅ ARM architecture detected ($ARCH) - perfect for Raspberry Pi!"
+        DOCKER_TAG="pi-latest"
         ;;
     x86_64)
-        echo "🖥️  x86_64 detected - this will work but is optimized for Raspberry Pi"
+        echo "🖥️  x86_64 detected - using amd64 image"
+        DOCKER_TAG="latest"
         ;;
     *)
-        echo "⚠️  Unknown architecture: $ARCH - continuing anyway..."
+        echo "⚠️  Unknown architecture: $ARCH - trying arm64 image..."
+        DOCKER_TAG="pi-latest"
         ;;
 esac
 
-echo ""
-echo "📥 Downloading and running the installation script..."
-echo ""
+# Function to check if user can run docker
+can_run_docker() {
+    docker info &> /dev/null
+}
 
-# Download and run the quick deploy script
-curl -fsSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/scripts/quick-deploy-pi.sh | bash
+# Install Docker if not present
+if ! command -v docker &> /dev/null; then
+    echo "� Docker not found - installing Docker..."
+    curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+    sudo sh /tmp/get-docker.sh
+    sudo usermod -aG docker $USER
+    rm -f /tmp/get-docker.sh
+    echo "✅ Docker installed!"
+    
+    # Start and enable Docker service
+    sudo systemctl start docker
+    sudo systemctl enable docker
+    echo "✅ Docker service started"
+fi
 
-# Check if the installation was successful
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "🎉 Setup completed successfully!"
-    echo ""
-    echo "📋 Quick reference:"
-    echo "   Project location: ~/encryptedmeshlink"
-    echo "   View logs:        cd ~/encryptedmeshlink && docker-compose logs -f"
-    echo "   Service status:   cd ~/encryptedmeshlink && docker-compose ps"
-    echo ""
-else
-    echo ""
-    echo "❌ Setup failed. Please check the error messages above."
-    echo "   For help, visit: https://github.com/kiisu-dsalyss/EncryptedMeshLink"
+# Handle Docker group permissions
+if ! can_run_docker; then
+    echo "🔧 Setting up Docker permissions..."
+    
+    # Add user to docker group if not already
+    if ! groups | grep -q docker; then
+        sudo usermod -aG docker $USER
+        echo "✅ Added user to docker group"
+    fi
+    
+    # Try to activate the group in current session
+    if ! can_run_docker; then
+        echo "🔄 Activating Docker group permissions..."
+        echo "   This requires re-running the script with proper group membership."
+        echo ""
+        echo "🚀 Restarting setup with Docker access..."
+        exec sg docker -c "bash <(curl -fsSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/setup)"
+    fi
+fi
+
+# Verify Docker is working
+if ! can_run_docker; then
+    echo "❌ Cannot access Docker. This might need a logout/login cycle."
+    echo "   Please try:"
+    echo "   1. Log out and log back in"
+    echo "   2. Then re-run: curl -fsSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/setup | bash"
     exit 1
 fi
+
+echo "✅ Docker is ready!"
+
+# Install Docker Compose if needed
+if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
+    echo "📦 Installing Docker Compose..."
+    sudo apt update
+    sudo apt install -y docker-compose-plugin
+    echo "✅ Docker Compose installed!"
+fi
+
+# Determine compose command
+if docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+else
+    COMPOSE_CMD="docker-compose"
+fi
+
+# Set up project directory
+PROJECT_DIR="$HOME/encryptedmeshlink"
+echo "� Setting up project in: $PROJECT_DIR"
+
+mkdir -p "$PROJECT_DIR"
+cd "$PROJECT_DIR"
+
+# Create directory structure
+mkdir -p config data logs
+
+# Create docker-compose.yml
+echo "📝 Creating Docker configuration..."
+cat > docker-compose.yml << EOF
+version: '3.8'
+
+services:
+  encryptedmeshlink:
+    image: ghcr.io/kiisu-dsalyss/encryptedmeshlink:${DOCKER_TAG}
+    container_name: eml-station
+    restart: unless-stopped
+    
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTEDMESHLINK_AUTO_UPDATE=false
+      - EML_LOCAL_TESTING=false
+    
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    
+    ports:
+      - "8447:8447"  # P2P communication
+      - "3000:3000"  # Web interface (optional)
+    
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyACM0:/dev/ttyACM0
+    
+    privileged: true
+    
+    healthcheck:
+      test: ["CMD", "npx", "tsx", "encryptedmeshlink.ts", "--health-check"]
+      interval: 60s
+      timeout: 30s
+      retries: 2
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+EOF
+
+# Check for Meshtastic devices
+echo "🔌 Checking for Meshtastic devices..."
+if ls /dev/ttyUSB* 1> /dev/null 2>&1; then
+    echo "✅ Found USB devices: $(ls /dev/ttyUSB*)"
+elif ls /dev/ttyACM* 1> /dev/null 2>&1; then
+    echo "✅ Found ACM devices: $(ls /dev/ttyACM*)"
+else
+    echo "⚠️  No Meshtastic devices found. Connect your device and restart the service."
+fi
+
+# Pull and start the service
+echo "📦 Downloading EncryptedMeshLink (this replaces the 20-minute build!)..."
+docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:${DOCKER_TAG}
+
+echo "🚀 Starting EncryptedMeshLink..."
+$COMPOSE_CMD up -d
+
+# Wait and show status
+echo "⏳ Initializing service..."
+sleep 10
+
+echo ""
+echo "📊 Service Status:"
+$COMPOSE_CMD ps
+
+echo ""
+echo "📋 Recent logs:"
+$COMPOSE_CMD logs --tail=10
+
+echo ""
+echo "🎉 EncryptedMeshLink is now running!"
+echo ""
+echo "📋 Useful commands:"
+echo "   View logs:        cd $PROJECT_DIR && $COMPOSE_CMD logs -f"
+echo "   Stop service:     cd $PROJECT_DIR && $COMPOSE_CMD down"
+echo "   Restart service:  cd $PROJECT_DIR && $COMPOSE_CMD restart"
+echo "   Update:           cd $PROJECT_DIR && docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:${DOCKER_TAG} && $COMPOSE_CMD up -d"
+echo "   Service status:   cd $PROJECT_DIR && $COMPOSE_CMD ps"
+echo ""
+echo "🌐 Web interface (if enabled): http://$(hostname -I | awk '{print $1}'):3000"
+echo ""

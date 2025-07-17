@@ -31,22 +31,53 @@ if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com -o get-docker.sh
     sudo sh get-docker.sh
     sudo usermod -aG docker $USER
-    echo "✅ Docker installed. Please log out and back in, then run this script again."
-    exit 0
+    rm -f get-docker.sh
+    
+    echo "✅ Docker installed successfully!"
+    echo "🔄 Activating Docker group membership..."
+    
+    # Try to activate docker group without logout
+    if groups | grep -q docker; then
+        echo "✅ Docker group already active"
+    else
+        echo "🔧 Activating docker group with newgrp..."
+        # Re-exec this script in a new shell with docker group active
+        exec sg docker "$0 $*"
+    fi
 fi
 
+# Test Docker access
+if ! docker info &> /dev/null; then
+    echo "🔧 Docker installed but needs group activation. Trying to fix..."
+    if ! groups | grep -q docker; then
+        echo "⚠️  Docker group not active. You may need to:"
+        echo "   1. Log out and log back in, OR"
+        echo "   2. Run: newgrp docker"
+        echo "   3. Then re-run this script"
+        echo ""
+        echo "🔄 Attempting to continue with 'sg docker' wrapper..."
+        # Try to run docker commands through sg docker
+        DOCKER_CMD="sg docker -c"
+    else
+        DOCKER_CMD=""
+    fi
+else
+    DOCKER_CMD=""
+fi
 # Check if Docker Compose is available
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+if ! command -v docker-compose &> /dev/null && ! eval "${DOCKER_CMD} docker compose version" &> /dev/null; then
     echo "📦 Installing Docker Compose..."
     sudo apt update
     sudo apt install -y docker-compose-plugin
 fi
 
 # Determine compose command
-if docker compose version &> /dev/null; then
-    COMPOSE_CMD="docker compose"
-else
+if eval "${DOCKER_CMD} docker compose version" &> /dev/null; then
+    COMPOSE_CMD="${DOCKER_CMD} docker compose"
+elif command -v docker-compose &> /dev/null; then
     COMPOSE_CMD="docker-compose"
+else
+    COMPOSE_CMD="${DOCKER_CMD} docker-compose"
 fi
 
 # Create project directory
@@ -122,7 +153,11 @@ fi
 # Pull the latest image
 echo "📦 Pulling latest EncryptedMeshLink image..."
 echo "   (This is much faster than building - just downloading ~100MB)"
-docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
+if [ -n "$DOCKER_CMD" ]; then
+    eval "$DOCKER_CMD 'docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest'"
+else
+    docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
+fi
 
 # Start the service
 echo "🚀 Starting EncryptedMeshLink..."
@@ -148,7 +183,11 @@ echo "📋 Useful commands:"
 echo "   View logs:        cd $PROJECT_DIR && $COMPOSE_CMD logs -f"
 echo "   Stop service:     cd $PROJECT_DIR && $COMPOSE_CMD down"
 echo "   Restart service:  cd $PROJECT_DIR && $COMPOSE_CMD restart"
-echo "   Update image:     cd $PROJECT_DIR && docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest && $COMPOSE_CMD up -d"
+if [ -n "$DOCKER_CMD" ]; then
+    echo "   Update image:     cd $PROJECT_DIR && $DOCKER_CMD 'docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest' && $COMPOSE_CMD up -d"
+else
+    echo "   Update image:     cd $PROJECT_DIR && docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest && $COMPOSE_CMD up -d"
+fi
 echo "   Service status:   cd $PROJECT_DIR && $COMPOSE_CMD ps"
 echo ""
 echo "🌐 If you have a web interface enabled, visit: http://$(hostname -I | awk '{print $1}'):3000"

@@ -3,7 +3,7 @@
  * MIB-003: Cryptography Module Tests
  */
 
-import { CryptoService, ContactInfo } from '../src/crypto';
+import { CryptoService, ContactInfo } from '../src/crypto/index';
 import { KeyManager } from '../src/config/keyManager';
 import { findAvailablePort } from './testUtils';
 

@@ -5,7 +5,7 @@
 
 import { P2PConnectionManager } from '../src/p2p/connection/index';
 import { P2PConnectionConfig, PeerInfo } from '../src/p2p/types';
-import { CryptoService } from '../src/crypto';
+import { CryptoService } from '../src/crypto/index';
 import { findAvailablePort } from './testUtils';
 
 // Mock the crypto service for testing

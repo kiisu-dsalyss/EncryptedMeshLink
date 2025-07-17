@@ -5,7 +5,7 @@
 
 import { P2PTransport } from '../src/p2p/transport';
 import { P2PTransportConfig } from '../src/p2p/transport';
-import { CryptoService } from '../src/crypto';
+import { CryptoService } from '../src/crypto/index';
 import { DiscoveryClientModular } from '../src/discovery/index';
 import { createBridgeMessage, MessageType, MessagePriority } from '../src/bridge/protocol';
 import { findAvailablePort } from './testUtils';

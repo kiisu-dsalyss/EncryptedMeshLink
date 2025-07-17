@@ -19,8 +19,8 @@ import {
 const mockBridgeClient = {
   on: jest.fn(),
   emit: jest.fn(),
-  sendSystemMessage: jest.fn(),
-  broadcastSystemMessage: jest.fn(),
+  sendMessage: jest.fn(),
+  broadcastMessage: jest.fn(),
   removeListener: jest.fn()
 } as unknown as BridgeClient;
 
@@ -350,8 +350,8 @@ describe('NodeRegistryManager', () => {
     mockBridge = {
       on: jest.fn(),
       emit: jest.fn(),
-      sendSystemMessage: jest.fn(() => Promise.resolve()),
-      broadcastSystemMessage: jest.fn(() => Promise.resolve()),
+      sendMessage: jest.fn(() => Promise.resolve()),
+      broadcastMessage: jest.fn(() => Promise.resolve()),
       removeListener: jest.fn()
     } as unknown as jest.Mocked<BridgeClient>;
 
@@ -466,9 +466,9 @@ describe('NodeRegistryManager', () => {
       expect(result?.nodeId).toBe('remote-node');
       expect(result?.stationId).toBe('remote-station');
       
-      // Wait a bit to ensure the async broadcastSystemMessage has been called
+      // Wait a bit to ensure the async broadcastMessage has been called
       await new Promise(resolve => setTimeout(resolve, 50));
-      expect(mockBridge.broadcastSystemMessage).toHaveBeenCalled();
+      expect(mockBridge.broadcastMessage).toHaveBeenCalled();
     });
 
     test('should timeout on remote node query', async () => {
@@ -539,7 +539,7 @@ describe('NodeRegistryManager', () => {
         systemMessageHandler(queryMessage);
       }
 
-      expect(mockBridge.sendSystemMessage).toHaveBeenCalledWith(
+      expect(mockBridge.sendMessage).toHaveBeenCalledWith(
         'asking-station',
         expect.objectContaining({
           type: 'node_query_response',

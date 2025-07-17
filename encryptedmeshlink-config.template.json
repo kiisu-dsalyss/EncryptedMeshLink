@@ -1,6 +1,6 @@
 {
-  "stationId": "your-station-id",
-  "displayName": "Your Station Name",
+  "stationId": "mesh-station-001",
+  "displayName": "Your Mesh Station",
   "keys": {
     "publicKey": "",
     "privateKey": ""

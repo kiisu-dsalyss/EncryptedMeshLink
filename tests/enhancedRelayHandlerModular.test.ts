@@ -8,7 +8,7 @@ import { handleRelayMessage } from '../src/handlers/handleRelayMessage';
 import { stopBridge } from '../src/handlers/stopBridge';
 import { StationConfig } from '../src/config/types';
 import { NodeInfo } from '../src/handlers/tryLocalRelay';
-import { RemoteNodeInfo } from '../src/handlers/tryRemoteRelay';
+import { RemoteNodeInfo } from '../src/handlers/peerEvents';
 import { DiscoveryClientModular } from '../src/discovery/index';
 import { CryptoService } from '../src/crypto/index';
 
@@ -177,7 +177,7 @@ describe('EnhancedRelayHandler (Modular)', () => {
         'Hello Alice'
       );
 
-      expect(mockMeshDevice.sendText).toHaveBeenCalledWith('Hello Alice', 101);
+      expect(mockMeshDevice.sendText).toHaveBeenCalledWith('📩 From Node 200: Hello Alice', 101);
     });
 
     it('should relay to local node by name', async () => {
@@ -195,7 +195,7 @@ describe('EnhancedRelayHandler (Modular)', () => {
         'Hello Bob'
       );
 
-      expect(mockMeshDevice.sendText).toHaveBeenCalledWith('Hello Bob', 102);
+      expect(mockMeshDevice.sendText).toHaveBeenCalledWith('📩 From Node 200: Hello Bob', 102);
     });
 
     it('should not relay to self', async () => {
@@ -231,7 +231,7 @@ describe('EnhancedRelayHandler (Modular)', () => {
         'Hello Unknown'
       );
 
-      expect(mockMeshDevice.sendText).not.toHaveBeenCalled();
+      expect(mockMeshDevice.sendText).toHaveBeenCalledWith('❌ Relay failed: Target "Unknown" not found', 200);
     });
   });
 
@@ -288,7 +288,9 @@ describe('EnhancedRelayHandler (Modular)', () => {
       remoteNodes.set(999, {
         nodeId: 999,
         stationId: 'remote-001',
-        lastSeen: new Date()
+        lastSeen: new Date(),
+        displayName: 'r1Node',
+        shortName: 'r1aa'
       });
       expect(remoteNodes.size).toBe(1);
     });

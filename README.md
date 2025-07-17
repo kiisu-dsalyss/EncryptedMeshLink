@@ -25,6 +25,27 @@ This advanced installer provides:
 
 **Perfect for production Pi deployments!** Includes optimized timeouts and resource limits specifically tuned for Raspberry Pi hardware. See [PI-INSTALLATION.md](PI-INSTALLATION.md) for full details.
 
+### For Manual Control (Preferred by Advanced Users)
+
+**No system modifications, no interactive prompts, perfect for SSH:**
+
+```bash
+cd ~
+git clone https://github.com/kiisu-dsalyss/EncryptedMeshLink.git
+cd EncryptedMeshLink
+docker-compose -f docker-compose.pi.yml up -d
+```
+
+This manual approach:
+
+- ✅ **No system upgrades** that cause interactive prompts  
+- ✅ **No automated package installation** that might conflict
+- ✅ **Full user control** over what gets installed
+- ✅ **Works perfectly over SSH** without getting stuck on dialogs
+- ✅ **Simple and predictable** - just Docker containers
+
+See [MANUAL-PI-INSTALL.md](MANUAL-PI-INSTALL.md) for complete manual installation guide.
+
 ### For Quick Testing (All Linux Systems)
 
 **Basic setup without auto-updates:**

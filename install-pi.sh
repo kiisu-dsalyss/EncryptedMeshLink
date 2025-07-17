@@ -301,9 +301,11 @@ else
     echo "   You can still deploy and add devices later"
 fi
 
-# Build and deploy
-print_info "Building and deploying EncryptedMeshLink..."
+# Build and deploy with Pi-optimized configuration
+print_info "Building and deploying EncryptedMeshLink with Pi optimizations..."
 docker-compose -f docker-compose.pi.yml down 2>/dev/null || true
+# Also stop any regular compose service that might be running
+docker-compose down 2>/dev/null || true
 docker-compose -f docker-compose.pi.yml up --build -d
 
 # Wait for startup

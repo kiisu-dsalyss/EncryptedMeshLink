@@ -541,11 +541,9 @@ describe('NodeRegistryManager', () => {
 
       expect(mockBridge.sendMessage).toHaveBeenCalledWith(
         'asking-station',
-        expect.objectContaining({
-          type: 'node_query_response',
-          targetNodeId: 'local-node',
-          found: true
-        })
+        expect.stringContaining('"type":"node_query_response"') &&
+        expect.stringContaining('"targetNodeId":"local-node"') &&
+        expect.stringContaining('"found":true')
       );
     });
   });

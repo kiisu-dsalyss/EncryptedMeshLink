@@ -180,7 +180,7 @@ export class NodeRegistryManager extends EventEmitter {
     };
 
     try {
-      await this.bridgeClient.broadcastSystemMessage(queryMessage);
+      await this.bridgeClient.broadcastMessage(JSON.stringify(queryMessage));
       
       // Wait for response (simplified - in real implementation would use promise/callback)
       return new Promise((resolve) => {
@@ -254,7 +254,7 @@ export class NodeRegistryManager extends EventEmitter {
       checksum: this.calculateChecksum(localNodes)
     };
 
-    await this.bridgeClient.broadcastSystemMessage(syncMessage);
+    await this.bridgeClient.broadcastMessage(JSON.stringify(syncMessage));
     this.emitEvent('sync_completed', undefined, this.localStationId, { 
       nodeCount: localNodes.length 
     });
@@ -316,7 +316,7 @@ export class NodeRegistryManager extends EventEmitter {
     };
 
     // Send response back via bridge
-    this.bridgeClient.sendSystemMessage(message.sourceStationId, response).catch((error: any) => {
+    this.bridgeClient.sendMessage(message.sourceStationId, JSON.stringify(response)).catch((error: any) => {
       console.error('Failed to send node query response:', error);
     });
   }

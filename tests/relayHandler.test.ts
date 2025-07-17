@@ -57,7 +57,7 @@ describe('RelayHandler', () => {
         789
       );
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        '✅ Message relayed to Bob Mobile',
+        '✅ Message relayed to Bob Mobile (789) 🟢',
         456
       );
     });
@@ -72,7 +72,7 @@ describe('RelayHandler', () => {
         789
       );
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        '✅ Message relayed to Bob Mobile',
+        '✅ Message relayed to Bob Mobile (789) 🟢',
         456
       );
     });
@@ -87,7 +87,7 @@ describe('RelayHandler', () => {
         999
       );
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        '✅ Message relayed to Charlie Base',
+        '✅ Message relayed to Charlie Base (999) 🟢',
         456
       );
     });
@@ -217,7 +217,7 @@ describe('RelayHandler', () => {
       await relayHandler.handleRelayMessage(mockPacket, '888', 'No long name test');
 
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        '✅ Message relayed to 888',
+        '✅ Message relayed to Eve (888) 🟢',
         456
       );
     });
@@ -231,7 +231,15 @@ describe('RelayHandler', () => {
       await relayHandler.handleNodesRequest(mockPacket);
 
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        'Available nodes:\n456: Alice Station\n789: Bob Mobile\n999: Charlie Base\n\nSend: @{nodeId} {message} to relay',
+        expect.stringContaining('📡 Available Nodes:'),
+        777
+      );
+      expect(mockDevice.sendText).toHaveBeenCalledWith(
+        expect.stringContaining('[456] Alice Station (Alice) 🟢'),
+        777
+      );
+      expect(mockDevice.sendText).toHaveBeenCalledWith(
+        expect.stringContaining('[789] Bob Mobile (Bob) 🟢'),
         777
       );
     });
@@ -268,7 +276,7 @@ describe('RelayHandler', () => {
       await relayHandler.handleNodesRequest(mockPacket);
 
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        expect.stringContaining('777: Unknown'),
+        expect.stringContaining('[777] Unknown 🟢'),
         456
       );
     });
@@ -282,7 +290,7 @@ describe('RelayHandler', () => {
 
       // Should include all nodes since no myNodeNum to exclude
       expect(mockDevice.sendText).toHaveBeenCalledWith(
-        expect.stringContaining('456: Alice Station'),
+        expect.stringContaining('[456] Alice Station (Alice) 🟢'),
         456
       );
     });

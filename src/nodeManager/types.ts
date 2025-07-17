@@ -12,3 +12,11 @@ export interface NodeInfo {
   position?: any;
   lastSeen: Date;
 }
+
+export interface NodeMatchResult {
+  node: NodeInfo;
+  nodeId: number;
+  matchScore: number;
+  isOnline: boolean;
+  matchType: 'exact_id' | 'exact_name' | 'partial_name' | 'fuzzy_name';
+}

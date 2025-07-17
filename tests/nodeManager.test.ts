@@ -158,7 +158,7 @@ describe('NodeManager', () => {
       nodeManager.addNode(nodeInfo);
       nodeManager.showAvailableNodes();
       
-      expect(console.log).toHaveBeenCalledWith('📱 123456789: Test Station [test]');
+      expect(console.log).toHaveBeenCalledWith('🟢 [123456789] Test Station (test)');
     });
 
     test('shows single node with THIS DEVICE indicator', () => {
@@ -170,33 +170,54 @@ describe('NodeManager', () => {
       nodeManager.addNode(nodeInfo);
       nodeManager.showAvailableNodes(123456789);
       
-      expect(console.log).toHaveBeenCalledWith('📱 123456789: My Station [me] (THIS DEVICE)');
+      expect(console.log).toHaveBeenCalledWith('🟢 [123456789] My Station (me) (THIS DEVICE)');
     });
 
-    test('shows multiple nodes sorted by number', () => {
-      const node1 = { num: 333333333, user: { longName: 'Node C', shortName: 'c' } };
-      const node2 = { num: 111111111, user: { longName: 'Node A', shortName: 'a' } };
-      const node3 = { num: 222222222, user: { longName: 'Node B', shortName: 'b' } };
+    test('shows multiple nodes sorted by online status then number', () => {
+      const node1 = { 
+        num: 333333333, 
+        user: { longName: 'Node C', shortName: 'c' }
+      };
+      const node2 = { 
+        num: 111111111, 
+        user: { longName: 'Node A', shortName: 'a' }
+      };
+      const node3 = { 
+        num: 222222222, 
+        user: { longName: 'Node B', shortName: 'b' }
+      };
 
       nodeManager.addNode(node1);
       nodeManager.addNode(node2);
       nodeManager.addNode(node3);
       
+      // Manually set lastSeen to test online/offline status
+      const knownNodes = nodeManager.getKnownNodes();
+      const nodeC = knownNodes.get(333333333)!;
+      const nodeA = knownNodes.get(111111111)!;
+      const nodeB = knownNodes.get(222222222)!;
+      
+      nodeC.lastSeen = new Date(Date.now() - 1000); // Recent = online
+      nodeA.lastSeen = new Date(Date.now() - 10 * 60 * 1000); // Old = offline  
+      nodeB.lastSeen = new Date(Date.now() - 1000); // Recent = online
+      
       nodeManager.showAvailableNodes();
       
-      // Should be sorted by number, not name
-      expect(console.log).toHaveBeenCalledWith('📱 111111111: Node A [a]');
-      expect(console.log).toHaveBeenCalledWith('📱 222222222: Node B [b]');
-      expect(console.log).toHaveBeenCalledWith('📱 333333333: Node C [c]');
+      // Should be sorted by online status first, then number
+      expect(console.log).toHaveBeenCalledWith('🟢 [222222222] Node B (b)');
+      expect(console.log).toHaveBeenCalledWith('🟢 [333333333] Node C (c)');
+      expect(console.log).toHaveBeenCalledWith('🔴 [111111111] Node A (a)');
     });
 
     test('handles nodes with missing user info', () => {
-      const nodeInfo = { num: 123456789 };
+      const nodeInfo = { 
+        num: 123456789
+      };
       
       nodeManager.addNode(nodeInfo);
       nodeManager.showAvailableNodes();
       
-      expect(console.log).toHaveBeenCalledWith('📱 123456789: Unknown [📱]');
+      expect(console.log).toHaveBeenCalledWith('🟢 [123456789] Unknown');
     });
 
     test('handles nodes with missing shortName', () => {
@@ -208,37 +229,56 @@ describe('NodeManager', () => {
       nodeManager.addNode(nodeInfo);
       nodeManager.showAvailableNodes();
       
-      expect(console.log).toHaveBeenCalledWith('📱 123456789: Test Station [📱]');
+      expect(console.log).toHaveBeenCalledWith('🟢 [123456789] Test Station');
     });
 
     test('shows usage instructions', () => {
-      const nodeInfo = { num: 123456789, user: { longName: 'Test' } };
+      const nodeInfo = { 
+        num: 123456789, 
+        user: { longName: 'Test' }
+      };
       nodeManager.addNode(nodeInfo);
       nodeManager.showAvailableNodes();
       
       expect(console.log).toHaveBeenCalledWith('\n💬 Usage:');
       expect(console.log).toHaveBeenCalledWith('   Send "nodes" to get this list');
-      expect(console.log).toHaveBeenCalledWith('   Send "@{nodeId} {message}" to relay by ID');
-      expect(console.log).toHaveBeenCalledWith('   Send "@{nodeName} {message}" to relay by name');
+      expect(console.log).toHaveBeenCalledWith('   Send "@[ID] {message}" to relay by ID (recommended)');
+      expect(console.log).toHaveBeenCalledWith('   Send "@{name} {message}" to relay by name');
       expect(console.log).toHaveBeenCalledWith('   Example: "@1111111111 Hello there!"');
       expect(console.log).toHaveBeenCalledWith('   Example: "@alice Hello there!"');
+      expect(console.log).toHaveBeenCalledWith('\n💡 Tip: Online nodes (🟢) are prioritized for name matching');
       expect(console.log).toHaveBeenCalledWith('===================');
     });
 
     test('identifies correct device when myNodeNum matches', () => {
-      const node1 = { num: 111111111, user: { longName: 'Other Station' } };
-      const node2 = { num: 222222222, user: { longName: 'My Station' } };
-      const node3 = { num: 333333333, user: { longName: 'Another Station' } };
+      const node1 = { 
+        num: 111111111, 
+        user: { longName: 'Other Station' }
+      };
+      const node2 = { 
+        num: 222222222, 
+        user: { longName: 'My Station' }
+      };
+      const node3 = { 
+        num: 333333333, 
+        user: { longName: 'Another Station' }
+      };
 
       nodeManager.addNode(node1);
       nodeManager.addNode(node2);
       nodeManager.addNode(node3);
       
+      // Manually set lastSeen to test online/offline status
+      const knownNodes = nodeManager.getKnownNodes();
+      knownNodes.get(111111111)!.lastSeen = new Date(Date.now() - 10 * 60 * 1000); // Old = offline
+      knownNodes.get(222222222)!.lastSeen = new Date(); // Recent = online
+      knownNodes.get(333333333)!.lastSeen = new Date(); // Recent = online
+      
       nodeManager.showAvailableNodes(222222222);
       
-      expect(console.log).toHaveBeenCalledWith('📱 111111111: Other Station [📱]');
-      expect(console.log).toHaveBeenCalledWith('📱 222222222: My Station [📱] (THIS DEVICE)');
-      expect(console.log).toHaveBeenCalledWith('📱 333333333: Another Station [📱]');
+      expect(console.log).toHaveBeenCalledWith('🟢 [222222222] My Station (THIS DEVICE)');
+      expect(console.log).toHaveBeenCalledWith('🟢 [333333333] Another Station');
+      expect(console.log).toHaveBeenCalledWith('🔴 [111111111] Other Station');
     });
   });
 });

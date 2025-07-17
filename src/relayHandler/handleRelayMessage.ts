@@ -6,6 +6,7 @@
 import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from './types';
 import { parseTargetIdentifier } from '../common';
+import { findBestNodeMatch } from './nodeMatching';
 
 export async function handleRelayMessage(
   device: MeshDevice,
@@ -16,32 +17,21 @@ export async function handleRelayMessage(
 ): Promise<void> {
   console.log(`🔄 Relay request: Forward "${message}" to "${targetIdentifier}"`);
   
-  // Find target node by ID or name
-  let targetNodeId: number | undefined;
-  let targetNode: NodeInfo | undefined;
+  // Use enhanced node matching
+  const matchResult = findBestNodeMatch(knownNodes, targetIdentifier);
   
-  // Parse target identifier
-  const targetResult = parseTargetIdentifier(targetIdentifier);
-  if (targetResult.isNumeric) {
-    targetNodeId = targetResult.value as number;
-    targetNode = knownNodes.get(targetNodeId);
-  } else {
-    // Search by name (longName or shortName)
-    knownNodes.forEach((node, nodeId) => {
-      if (!targetNodeId) { // Only set if we haven't found one yet
-        const longName = node.user?.longName?.toLowerCase() || '';
-        const shortName = node.user?.shortName?.toLowerCase() || '';
-        
-        if (longName.includes(targetIdentifier) || shortName.includes(targetIdentifier)) {
-          targetNodeId = nodeId;
-          targetNode = node;
-        }
-      }
-    });
-  }
-  
-  if (targetNodeId && targetNode) {
-    console.log(`📤 Relaying to: ${targetNode.user?.longName || 'Unknown'} (${targetNodeId})`);
+  if (matchResult) {
+    const { node, nodeId, matchScore, isOnline, matchType } = matchResult;
+    
+    // Log match details
+    const onlineStatus = isOnline ? "🟢 ONLINE" : "🔴 OFFLINE";
+    const matchDetails = `${matchScore}% match (${matchType})`;
+    console.log(`📤 Best match: ${node.user?.longName || 'Unknown'} (${nodeId}) - ${onlineStatus} - ${matchDetails}`);
+    
+    // Show warning for offline nodes or low-confidence matches
+    if (!isOnline && matchScore < 90) {
+      console.log(`⚠️  Warning: Target node is offline and match confidence is ${matchScore}%`);
+    }
     
     try {
       // Resolve sender name and include ID for app linking
@@ -50,11 +40,20 @@ export async function handleRelayMessage(
       
       // Put ID first for clickable links, then name for readability
       const relayMessage = `[From ${packet.from} (${senderName})]: ${message}`;
-      await device.sendText(relayMessage, targetNodeId);
+      await device.sendText(relayMessage, nodeId);
       console.log("✅ Message relayed successfully");
       
-      // Send confirmation back to sender
-      await device.sendText(`✅ Message relayed to ${targetNode.user?.longName || targetNodeId}`, packet.from);
+      // Enhanced confirmation with match details
+      const targetName = node.user?.longName || node.user?.shortName || `Node-${nodeId}`;
+      const statusIcon = isOnline ? "🟢" : "🔴";
+      let confirmationMessage = `✅ Message relayed to ${targetName} (${nodeId}) ${statusIcon}`;
+      
+      // Add match details for fuzzy matches
+      if (matchType === 'fuzzy_name' || matchScore < 90) {
+        confirmationMessage += ` (${matchScore}% match)`;
+      }
+      
+      await device.sendText(confirmationMessage, packet.from);
     } catch (error) {
       console.error("❌ Failed to relay message:", error);
       await device.sendText(`❌ Failed to relay message to ${targetIdentifier}`, packet.from);

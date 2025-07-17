@@ -5,7 +5,7 @@
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
 import { NodeInfo } from '../relayHandler/types';
-import { MessageQueue } from '../messageQueue';
+import { MessageQueue } from '../messageQueue/index';
 import { MessagePriority } from '../messageQueue/types';
 import { isNodeOnline } from '../relayHandler/nodeMatching';
 

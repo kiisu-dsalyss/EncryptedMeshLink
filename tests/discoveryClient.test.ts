@@ -25,7 +25,7 @@ describe('DiscoveryClient', () => {
         privateKey: '-----BEGIN PRIVATE KEY-----\nMOCK_PRIVATE_KEY\n-----END PRIVATE KEY-----'
       },
       discovery: {
-        serviceUrl: 'https://test.example.com/api/discovery.php',
+        serviceUrl: 'https://mock-discovery-server.com/api/discovery.php',
         checkInterval: 30,
         timeout: 10
       },
@@ -84,7 +84,7 @@ describe('DiscoveryClient', () => {
 
       expect(result).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://test.example.com/api/discovery.php',
+        'https://mock-discovery-server.com/api/discovery.php',
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({
@@ -147,7 +147,7 @@ describe('DiscoveryClient', () => {
       expect(peers).toHaveLength(1);
       expect(peers[0].stationId).toBe('peer-station-001');
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://test.example.com/api/discovery.php?peers=true',
+        'https://mock-discovery-server.com/api/discovery.php?peers=true',
         expect.objectContaining({
           method: 'GET'
         })
@@ -177,7 +177,7 @@ describe('DiscoveryClient', () => {
 
       expect(result).toBe(true);
       expect(mockFetch).toHaveBeenCalledWith(
-        `https://test.example.com/api/discovery.php?station_id=test-station-001`,
+        `https://mock-discovery-server.com/api/discovery.php?station_id=test-station-001`,
         expect.objectContaining({
           method: 'DELETE'
         })
@@ -207,7 +207,7 @@ describe('DiscoveryClient', () => {
       expect(health.status).toBe('healthy');
       expect(health.activeStations).toBe(5);
       expect(mockFetch).toHaveBeenCalledWith(
-        'https://test.example.com/api/discovery.php?health=true',
+        'https://mock-discovery-server.com/api/discovery.php?health=true',
         expect.objectContaining({
           method: 'GET'
         })

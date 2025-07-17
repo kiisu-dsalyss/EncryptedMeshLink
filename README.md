@@ -43,7 +43,7 @@ This will:
 - ✅ **Node Registry Bridge** - Cross-station node tracking and visibility
 - ✅ **Direct P2P Messaging** - Real-time TCP/WebSocket communication between stations
 - ✅ **Bridge Protocol** - Complete message specification with ACK/NACK handling
-- ✅ **Message Queue System** - SQLite persistence with offline delivery
+- 🚧 **Message Queue System** - SQLite infrastructure complete, store-and-forward integration pending
 - ✅ **Bidirectional Communication** - Auto-responses, message deduplication, case-insensitive node matching
 - ✅ **Encrypted P2P** - RSA + AES encrypted communication between stations
 - ✅ **Security First** - Zero-knowledge discovery server, end-to-end encryption
@@ -72,7 +72,7 @@ This will:
 6. **Case-insensitive Matching**: `@ralpha`, `@rAlpha`, and `@RALPHA` all work
 7. **Discovery Service**: PHP service ready for deployment to your hosting
 8. **Node Registry**: Cross-station node tracking with comprehensive validation
-9. **Message Queue**: SQLite-based persistence for offline message delivery
+9. **Message Queue Infrastructure**: SQLite-based system ready for store-and-forward messaging
 10. **Complete Test Coverage**: 247 tests passing across 15 comprehensive test suites
 
 🔧 **System Architecture**:
@@ -282,7 +282,16 @@ The system uses a comprehensive bridge message protocol with:
 │   ├── crypto.ts        # ✅ Cryptography module with P2P encryption
 │   ├── discoveryClient.ts # ✅ Discovery service client
 │   ├── enhancedRelayHandler.ts # ✅ Internet bridge handler
-│   ├── messageQueue.ts  # ✅ SQLite message persistence
+│   ├── messageQueue/    # ✅ SQLite message persistence system
+│   │   ├── index.ts     # ✅ Main MessageQueue class
+│   │   ├── database.ts  # ✅ SQLite database initialization
+│   │   ├── enqueue.ts   # ✅ Message queuing operations
+│   │   ├── dequeue.ts   # ✅ Message retrieval operations
+│   │   ├── status.ts    # ✅ Message status management
+│   │   ├── cleanup.ts   # ✅ Expired message cleanup
+│   │   ├── stats.ts     # ✅ Queue statistics
+│   │   ├── timer.ts     # ✅ Cleanup timer management
+│   │   └── types.ts     # ✅ MessageQueue type definitions
 │   ├── config/          # ✅ Station configuration system
 │   │   ├── types.ts     # ✅ TypeScript interfaces and types
 │   │   ├── manager.ts   # ✅ Configuration file management

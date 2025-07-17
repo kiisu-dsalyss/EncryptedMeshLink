@@ -22,11 +22,11 @@ echo "=========================="
 echo ""
 echo "This installer will:"
 echo "  ✅ Download pre-built Docker images (fast!)"
-echo "  ✅ Clone repository for configuration"
+echo "  ✅ Set up configuration files"
 echo "  ✅ Install Docker if needed"
 echo "  ✅ Start the application immediately"
 echo ""
-echo -e "${GREEN}⚡ Uses pre-built images - no 20 minute build process!${NC}"
+echo -e "${GREEN}⚡ Uses pre-built images - no building required!${NC}"
 echo ""
 
 # Function to print status
@@ -171,8 +171,8 @@ if [ "$PLATFORM" = "pi" ]; then
     COMPOSE_FILE="docker-compose.pi-prebuilt.yml"
     print_info "Using Raspberry Pi configuration with prebuilt images"
 else
-    COMPOSE_FILE="docker-compose.yml"
-    print_info "Using standard Linux configuration"
+    COMPOSE_FILE="docker-compose.prebuilt.yml"
+    print_info "Using Linux x86_64 configuration with prebuilt images"
 fi
 
 # Pre-pull Docker images

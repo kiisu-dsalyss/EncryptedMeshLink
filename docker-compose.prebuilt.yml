@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Standard deployment using pre-built images
+  encryptedmeshlink:
+    image: ghcr.io/kiisu-dsalyss/encryptedmeshlink:latest
+    container_name: eml-station
+    restart: unless-stopped
+    
+    # Environment configuration
+    environment:
+      - NODE_ENV=production
+      - ENCRYPTEDMESHLINK_AUTO_UPDATE=false  # Using Docker images instead
+      - EML_LOCAL_TESTING=false
+    
+    # Volume mounts for persistence
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+    
+    # Network configuration
+    ports:
+      - "8447:8447"  # P2P communication port
+      - "3000:3000"  # Optional web interface
+    
+    # USB device access for Meshtastic (Linux)
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+      - /dev/ttyACM0:/dev/ttyACM0
+    
+    # Privileged access for hardware detection
+    privileged: true
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "npx", "tsx", "encryptedmeshlink.ts", "help"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    
+    # Memory and CPU limits (can be overridden by .env)
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT:-1g}
+          cpus: ${CPU_LIMIT:-2.0}
+        reservations:
+          memory: ${MEMORY_RESERVATION:-512m}
+          cpus: ${CPU_RESERVATION:-1.0}
+
+# Named volumes for deployment management
+volumes:
+  deployment-staging:
+  deployment-production:
+  deployment-backup:

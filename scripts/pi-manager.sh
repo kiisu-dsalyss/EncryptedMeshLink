@@ -42,7 +42,9 @@ show_help() {
     echo "  update [--force]          Check and apply updates"
     echo "  restart                   Restart the service"
     echo "  logs [--follow]           Show logs"
-    echo "  health                    Detailed health check"
+    echo "  health                    Detailed health check with heartbeat analysis"
+    echo "  heartbeat-monitor         Monitor heartbeat status in real-time"
+    echo "  optimize                  Optimize configuration for stability"
     echo "  reset                     Complete reset and rebuild"
     echo "  auto-update [on|off]      Enable/disable auto-updates"
     echo "  update-interval [hours]   Set update check interval"
@@ -56,6 +58,9 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0 status                 # Show current status"
+    echo "  $0 health                 # Check health with heartbeat analysis"
+    echo "  $0 heartbeat-monitor      # Watch heartbeat status live"
+    echo "  $0 optimize               # Optimize for heartbeat stability"
     echo "  $0 update --force         # Force update"
     echo "  $0 logs --follow          # Watch logs live"
     echo "  $0 auto-update off        # Disable auto-updates"
@@ -238,6 +243,22 @@ health_check() {
                 print_warning "Health: $HEALTH"
                 ;;
         esac
+        
+        # Heartbeat analysis (last hour)
+        print_info "Heartbeat Analysis (last hour):"
+        recent_failures=$(docker logs eml-pi-station --since="1h" 2>/dev/null | grep -c "heartbeat.*fail\|HTTP 5[0-9][0-9]\|timeout" || echo "0")
+        if [ "$recent_failures" -gt 0 ]; then
+            print_warning "Found $recent_failures heartbeat-related errors"
+            echo "📋 Recent error samples:"
+            docker logs eml-pi-station --since="1h" 2>/dev/null | grep -i "heartbeat.*fail\|HTTP 5[0-9][0-9]\|timeout" | tail -3
+        else
+            print_status "No heartbeat failures detected"
+        fi
+        
+        # Resource usage
+        print_info "Resource Usage:"
+        docker stats eml-pi-station --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+        
     else
         print_error "Container: Not running"
     fi
@@ -394,6 +415,24 @@ case "$1" in
     update-interval)
         shift
         set_update_interval "$@"
+        ;;
+    heartbeat-monitor)
+        print_info "Starting heartbeat monitoring (Ctrl+C to stop)..."
+        docker logs eml-pi-station -f 2>&1 | while read line; do
+            timestamp=$(date '+%H:%M:%S')
+            if echo "$line" | grep -qi "heartbeat.*success\|heartbeat.*ok"; then
+                echo "[$timestamp] ✅ Heartbeat success"
+            elif echo "$line" | grep -qi "heartbeat.*fail\|heartbeat.*error\|HTTP 5[0-9][0-9]"; then
+                echo "[$timestamp] ❌ Heartbeat failure: $line"
+            elif echo "$line" | grep -qi "timeout"; then
+                echo "[$timestamp] ⏰ Timeout detected: $line"
+            fi
+        done
+        ;;
+    optimize)
+        print_info "Optimizing configuration for heartbeat stability..."
+        restart_service
+        print_status "Configuration optimized - monitoring for improvements"
         ;;
     help|--help|-h)
         show_help

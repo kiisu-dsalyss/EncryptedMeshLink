@@ -1,0 +1,27 @@
+{
+  "stationId": "your-station-id",
+  "displayName": "Your Station Name",
+  "keys": {
+    "publicKey": "",
+    "privateKey": ""
+  },
+  "discovery": {
+    "serviceUrl": "https://your-domain.com/api/discovery.php",
+    "checkInterval": 300,
+    "timeout": 30
+  },
+  "p2p": {
+    "listenPort": 8447,
+    "maxConnections": 10,
+    "connectionTimeout": 30
+  },
+  "mesh": {
+    "autoDetect": true,
+    "baudRate": 115200
+  },
+  "metadata": {
+    "createdAt": "",
+    "updatedAt": "",
+    "version": "1.0.0"
+  }
+}

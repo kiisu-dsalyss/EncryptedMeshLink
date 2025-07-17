@@ -3,8 +3,8 @@
 
 FROM node:23-alpine AS installer
 
-# Install git, bash, and udev tools for auto-updates and hardware detection
-RUN apk add --no-cache git bash udev
+# Install git, bash, udev tools, and coreutils for auto-updates and hardware detection
+RUN apk add --no-cache git bash udev coreutils
 
 # Set working directory
 WORKDIR /app
@@ -18,11 +18,11 @@ RUN npm install --no-audit --no-fund \
     && npm prune --production \
     && npm cache clean --force
 
-# Copy source code and configuration template
-COPY . .
+# Copy configuration template
+COPY encryptedmeshlink-config.template.json ./
 
-# Create default config if not exists in mounted volume
-RUN cp encryptedmeshlink-config.json encryptedmeshlink-config.template.json
+# Copy the rest of the source code
+COPY . .
 
 # Make entrypoint script executable
 RUN chmod +x docker-entrypoint.sh

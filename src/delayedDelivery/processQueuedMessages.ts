@@ -1,100 +1,77 @@
-/**
- * Process Queued Messages Function
- * Attempt delivery of queued messages to nodes that are now online
- */
-
-import type { MeshDevice } from "@jsr/meshtastic__core";
-import { NodeInfo } from '../relayHandler/types';
-import { MessageQueue } from '../messageQueue/index';
-import { isNodeOnline } from '../relayHandler/nodeMatching';
 import { DelayedDeliveryConfig } from './types';
+import { queueManager } from './queueManager';
 
+/**
+ * Process queued messages for delivery
+ * Attempts to deliver messages to nodes that are now online
+ */
 export async function processQueuedMessages(
-  device: MeshDevice,
-  knownNodes: Map<number, NodeInfo>,
-  messageQueue: MessageQueue,
-  config: DelayedDeliveryConfig
+  config: DelayedDeliveryConfig,
+  isNodeOnline: (nodeId: number) => boolean,
+  directSend: (nodeId: number, message: string) => Promise<boolean>
 ): Promise<void> {
   try {
-    // Get pending messages
-    const pendingMessages = messageQueue.getNextMessages(50);
-    
-    if (pendingMessages.length === 0) return;
-
-    console.log(`📬 Processing ${pendingMessages.length} queued messages...`);
-    let deliveredCount = 0;
-    let failedCount = 0;
-
-    for (const queuedMessage of pendingMessages) {
-      const targetNode = knownNodes.get(queuedMessage.toNode);
-      
-      if (!targetNode) {
-        // Node no longer known, mark as failed
-        messageQueue.markFailed(queuedMessage.id, 'Target node no longer known');
-        failedCount++;
-        continue;
-      }
-
-      const isOnline = isNodeOnline(targetNode);
-      const targetName = targetNode.user?.longName || targetNode.user?.shortName || `Node-${queuedMessage.toNode}`;
-
-      if (!isOnline) {
-        // Still offline, skip for now
-        continue;
-      }
-
-      // Mark as processing
-      messageQueue.markProcessing(queuedMessage.id);
-
-      try {
-        // Try delivery
-        const deliveryMessage = `📬 [Delayed] ${queuedMessage.message}`;
-        await device.sendText(deliveryMessage, queuedMessage.toNode);
-        
-        // Mark as delivered
-        messageQueue.markDelivered(queuedMessage.id);
-        deliveredCount++;
-        
-        console.log(`✅ Delayed delivery successful: ${queuedMessage.message.substring(0, 30)}... → ${targetName}`);
-        
-        // Notify sender of successful delayed delivery
-        try {
-          const senderNode = knownNodes.get(queuedMessage.fromNode);
-          if (senderNode && isNodeOnline(senderNode)) {
-            const notification = `✅ Your queued message was delivered to ${targetName}`;
-            await device.sendText(notification, queuedMessage.fromNode);
-          }
-        } catch (notifyError) {
-          console.warn(`⚠️ Failed to notify sender of delivery:`, notifyError);
-        }
-        
-      } catch (error) {
-        // Mark as failed (will retry if attempts remain)
-        const shouldRetry = messageQueue.markFailed(queuedMessage.id, `Delivery failed: ${error}`);
-        failedCount++;
-        
-        if (!shouldRetry) {
-          console.error(`❌ Giving up on message to ${targetName} after ${queuedMessage.maxAttempts} attempts`);
-          
-          // Notify sender of permanent failure
-          try {
-            const senderNode = knownNodes.get(queuedMessage.fromNode);
-            if (senderNode && isNodeOnline(senderNode)) {
-              const notification = `❌ Failed to deliver queued message to ${targetName} (gave up after ${queuedMessage.maxAttempts} attempts)`;
-              await device.sendText(notification, queuedMessage.fromNode);
-            }
-          } catch (notifyError) {
-            console.warn(`⚠️ Failed to notify sender of failure:`, notifyError);
-          }
-        }
-      }
+    // Clean up expired messages first
+    const expiredMessages = queueManager.cleanupExpired();
+    if (expiredMessages.length > 0) {
+      console.log(`🗑️ Cleaned up ${expiredMessages.length} expired messages`);
     }
 
-    if (deliveredCount > 0 || failedCount > 0) {
-      console.log(`📊 Queue processing: ${deliveredCount} delivered, ${failedCount} failed`);
+    // Get messages ready for retry
+    const readyMessages = queueManager.getMessagesReadyForRetry(config.retryInterval);
+    
+    if (readyMessages.length === 0) {
+      return;
+    }
+
+    console.log(`📨 Processing ${readyMessages.length} queued messages`);
+
+    for (const message of readyMessages) {
+      // Skip if node is still offline
+      if (!isNodeOnline(message.targetNodeId)) {
+        continue;
+      }
+
+      // Skip if we've exceeded max retries
+      if (message.retryCount >= config.maxRetries) {
+        console.warn(`❌ Message ${message.id} exceeded max retries (${config.maxRetries}), marking as failed`);
+        queueManager.markFailed(message.id);
+        continue;
+      }
+
+      try {
+        // Update retry count before attempting delivery
+        queueManager.updateRetryCount(message.id);
+        
+        console.log(`📤 Attempting delivery to node ${message.targetNodeId} (attempt ${message.retryCount}/${config.maxRetries})`);
+        
+        // Attempt delivery with timeout
+        const deliveryPromise = directSend(message.targetNodeId, message.message);
+        const timeoutPromise = new Promise<boolean>((_, reject) => {
+          setTimeout(() => reject(new Error('Delivery timeout')), config.deliveryTimeout);
+        });
+
+        const success = await Promise.race([deliveryPromise, timeoutPromise]);
+        
+        if (success) {
+          console.log(`✅ Message ${message.id} delivered successfully to node ${message.targetNodeId}`);
+          queueManager.markDelivered(message.id);
+        } else {
+          console.warn(`⚠️ Message ${message.id} delivery failed, will retry later`);
+        }
+
+      } catch (error) {
+        console.warn(`⚠️ Message ${message.id} delivery error:`, error);
+        
+        // If this was the final retry, mark as failed
+        if (message.retryCount >= config.maxRetries) {
+          console.warn(`❌ Message ${message.id} failed permanently after ${config.maxRetries} retries`);
+          queueManager.markFailed(message.id);
+        }
+      }
     }
 
   } catch (error) {
-    console.error(`❌ Error processing message queue:`, error);
+    console.error("❌ Error processing queued messages:", error);
   }
 }

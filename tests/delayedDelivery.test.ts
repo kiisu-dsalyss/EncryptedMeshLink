@@ -1,281 +1,240 @@
 /**
- * Delayed Delivery Tests
- * Tests for the modular delayed message delivery system
+ * Delayed Delivery System Tests
  */
 
-import { sendMessage } from '../src/delayedDelivery/sendMessage';
-import { processQueuedMessages } from '../src/delayedDelivery/processQueuedMessages';
-import { createDefaultConfig } from '../src/delayedDelivery/createDefaultConfig';
-import { NodeInfo } from '../src/relayHandler/types';
-import { MessagePriority } from '../src/messageQueue/types';
+import { 
+  createDefaultConfig, 
+  sendMessage, 
+  queueManager, 
+  getDeliveryStats,
+  getQueuedMessagesForNode,
+  startDeliverySystem,
+  stopDeliverySystem 
+} from '../src/delayedDelivery';
 
-// Mock dependencies
-const mockDevice = {
-  sendText: jest.fn()
-};
-
-const mockMessageQueue = {
-  enqueue: jest.fn(),
-  getNextMessages: jest.fn(),
-  markProcessing: jest.fn(),
-  markDelivered: jest.fn(),
-  markFailed: jest.fn(),
-  getStats: jest.fn()
-};
-
-// Mock node matching
-jest.mock('../src/relayHandler/nodeMatching', () => ({
-  isNodeOnline: jest.fn()
-}));
-
-import { isNodeOnline } from '../src/relayHandler/nodeMatching';
-
-describe('Delayed Message Delivery', () => {
-  let knownNodes: Map<number, NodeInfo>;
-  let config: ReturnType<typeof createDefaultConfig>;
-
+describe('Delayed Delivery System', () => {
   beforeEach(() => {
-    knownNodes = new Map();
-    config = createDefaultConfig();
-    jest.clearAllMocks();
+    // Clear queue before each test
+    queueManager.clear();
   });
 
   describe('createDefaultConfig', () => {
-    test('creates default configuration', () => {
-      const defaultConfig = createDefaultConfig();
+    test('should create default configuration', () => {
+      const config = createDefaultConfig();
       
-      expect(defaultConfig.maxQueueTime).toBe(24);
-      expect(defaultConfig.deliveryRetryInterval).toBe(30);
-      expect(defaultConfig.maxDeliveryAttempts).toBe(10);
-    });
-
-    test('allows config overrides', () => {
-      const customConfig = createDefaultConfig({
-        maxQueueTime: 48,
-        deliveryRetryInterval: 60
-      });
-      
-      expect(customConfig.maxQueueTime).toBe(48);
-      expect(customConfig.deliveryRetryInterval).toBe(60);
-      expect(customConfig.maxDeliveryAttempts).toBe(10); // Default preserved
+      expect(config.maxRetries).toBe(3);
+      expect(config.retryInterval).toBe(30000);
+      expect(config.maxQueueSize).toBe(1000);
+      expect(config.deliveryTimeout).toBe(10000);
+      expect(config.persistencePath).toBe('./data/delayed_messages.db');
     });
   });
 
   describe('sendMessage', () => {
-    test('delivers immediately to online node', async () => {
-      const targetNode: NodeInfo = {
-        num: 123456789,
-        user: { longName: 'Test Node', shortName: 'test' },
-        lastSeen: new Date()
-      };
-      
-      knownNodes.set(123456789, targetNode);
-      (isNodeOnline as jest.Mock).mockReturnValue(true);
-      (mockDevice.sendText as jest.Mock).mockResolvedValue(true);
+    const mockIsNodeOnline = jest.fn();
+    const mockDirectSend = jest.fn();
+
+    beforeEach(() => {
+      mockIsNodeOnline.mockReset();
+      mockDirectSend.mockReset();
+    });
+
+    test('should send message directly when node is online', async () => {
+      mockIsNodeOnline.mockReturnValue(true);
+      mockDirectSend.mockResolvedValue(true);
 
       const result = await sendMessage(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config,
-        111111111,
-        123456789,
-        'Hello Test',
-        MessagePriority.NORMAL
+        123456,
+        'Test message',
+        mockIsNodeOnline,
+        mockDirectSend
       );
 
-      expect(result.delivered).toBe(true);
+      expect(result.success).toBe(true);
       expect(result.queued).toBe(false);
-      expect(result.reason).toContain('Delivered immediately');
-      expect(mockDevice.sendText).toHaveBeenCalledWith('Hello Test', 123456789);
-      expect(mockMessageQueue.enqueue).not.toHaveBeenCalled();
+      expect(mockDirectSend).toHaveBeenCalledWith(123456, 'Test message');
     });
 
-    test('queues message for offline node', async () => {
-      const targetNode: NodeInfo = {
-        num: 123456789,
-        user: { longName: 'Test Node', shortName: 'test' },
-        lastSeen: new Date(Date.now() - 10 * 60 * 1000) // 10 minutes ago
-      };
-      
-      knownNodes.set(123456789, targetNode);
-      (isNodeOnline as jest.Mock).mockReturnValue(false);
-      (mockMessageQueue.enqueue as jest.Mock).mockResolvedValue('msg-123-456');
+    test('should queue message when node is offline', async () => {
+      mockIsNodeOnline.mockReturnValue(false);
 
       const result = await sendMessage(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config,
-        111111111,
-        123456789,
-        'Hello Offline',
-        MessagePriority.NORMAL
+        123456,
+        'Test message',
+        mockIsNodeOnline,
+        mockDirectSend
       );
 
-      expect(result.delivered).toBe(false);
+      expect(result.success).toBe(true);
       expect(result.queued).toBe(true);
-      expect(result.reason).toContain('offline - message queued');
-      expect(mockMessageQueue.enqueue).toHaveBeenCalledWith(
-        111111111,
-        123456789,
-        'Hello Offline',
-        {
-          priority: MessagePriority.NORMAL,
-          ttl: 24 * 3600, // 24 hours in seconds
-          maxAttempts: 10
-        }
-      );
+      expect(result.messageId).toBeDefined();
+      expect(mockDirectSend).not.toHaveBeenCalled();
+
+      // Verify message was queued
+      const queuedMessages = getQueuedMessagesForNode(123456);
+      expect(queuedMessages).toHaveLength(1);
+      expect(queuedMessages[0].message).toBe('Test message');
     });
 
-    test('handles unknown target node', async () => {
-      const result = await sendMessage(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config,
-        111111111,
-        999999999, // Unknown node
-        'Hello Unknown',
-        MessagePriority.NORMAL
-      );
-
-      expect(result.delivered).toBe(false);
-      expect(result.queued).toBe(false);
-      expect(result.reason).toContain('Target node 999999999 not found');
-    });
-
-    test('queues on delivery failure for online node', async () => {
-      const targetNode: NodeInfo = {
-        num: 123456789,
-        user: { longName: 'Test Node', shortName: 'test' },
-        lastSeen: new Date()
-      };
-      
-      knownNodes.set(123456789, targetNode);
-      (isNodeOnline as jest.Mock).mockReturnValue(true);
-      (mockDevice.sendText as jest.Mock).mockRejectedValue(new Error('Send failed'));
-      (mockMessageQueue.enqueue as jest.Mock).mockResolvedValue('msg-123-456');
+    test('should queue message when direct send fails', async () => {
+      mockIsNodeOnline.mockReturnValue(true);
+      mockDirectSend.mockRejectedValue(new Error('Send failed'));
 
       const result = await sendMessage(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config,
-        111111111,
-        123456789,
-        'Hello Failed',
-        MessagePriority.NORMAL
+        123456,
+        'Test message',
+        mockIsNodeOnline,
+        mockDirectSend
       );
 
-      expect(result.delivered).toBe(false);
+      expect(result.success).toBe(true);
       expect(result.queued).toBe(true);
-      expect(mockDevice.sendText).toHaveBeenCalledWith('Hello Failed', 123456789);
-      expect(mockMessageQueue.enqueue).toHaveBeenCalled();
+      expect(result.messageId).toBeDefined();
+    });
+
+    test('should force queue when forceQueue option is true', async () => {
+      mockIsNodeOnline.mockReturnValue(true);
+      mockDirectSend.mockResolvedValue(true);
+
+      const result = await sendMessage(
+        123456,
+        'Test message',
+        mockIsNodeOnline,
+        mockDirectSend,
+        { forceQueue: true }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.queued).toBe(true);
+      expect(result.messageId).toBeDefined();
+      expect(mockDirectSend).not.toHaveBeenCalled();
     });
   });
 
-  describe('processQueuedMessages', () => {
-    test('processes empty queue gracefully', async () => {
-      (mockMessageQueue.getNextMessages as jest.Mock).mockReturnValue([]);
+  describe('queueManager', () => {
+    test('should add and retrieve messages', () => {
+      const message = {
+        id: 'test-1',
+        targetNodeId: 123456,
+        message: 'Test message',
+        priority: 1,
+        queuedAt: Date.now(),
+        retryCount: 0
+      };
 
-      await processQueuedMessages(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config
-      );
+      queueManager.addMessage(message);
 
-      expect(mockMessageQueue.getNextMessages).toHaveBeenCalledWith(50);
-      expect(mockDevice.sendText).not.toHaveBeenCalled();
+      const messages = queueManager.getMessagesForNode(123456);
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toEqual(message);
     });
 
-    test('delivers queued messages to online nodes', async () => {
-      const targetNode: NodeInfo = {
-        num: 123456789,
-        user: { longName: 'Test Node', shortName: 'test' },
-        lastSeen: new Date()
+    test('should sort messages by priority', () => {
+      const lowPriority = {
+        id: 'test-1',
+        targetNodeId: 123456,
+        message: 'Low priority',
+        priority: 1,
+        queuedAt: Date.now(),
+        retryCount: 0
       };
+
+      const highPriority = {
+        id: 'test-2',
+        targetNodeId: 123456,
+        message: 'High priority',
+        priority: 5,
+        queuedAt: Date.now(),
+        retryCount: 0
+      };
+
+      queueManager.addMessage(lowPriority);
+      queueManager.addMessage(highPriority);
+
+      const messages = queueManager.getMessagesForNode(123456);
+      expect(messages[0].priority).toBe(5); // High priority first
+      expect(messages[1].priority).toBe(1); // Low priority second
+    });
+
+    test('should remove messages', () => {
+      const message = {
+        id: 'test-1',
+        targetNodeId: 123456,
+        message: 'Test message',
+        priority: 1,
+        queuedAt: Date.now(),
+        retryCount: 0
+      };
+
+      queueManager.addMessage(message);
+      expect(queueManager.getMessagesForNode(123456)).toHaveLength(1);
+
+      const removed = queueManager.removeMessage('test-1');
+      expect(removed).toBe(true);
+      expect(queueManager.getMessagesForNode(123456)).toHaveLength(0);
+    });
+
+    test('should mark messages as delivered', () => {
+      const message = {
+        id: 'test-1',
+        targetNodeId: 123456,
+        message: 'Test message',
+        priority: 1,
+        queuedAt: Date.now(),
+        retryCount: 0
+      };
+
+      queueManager.addMessage(message);
+      const marked = queueManager.markDelivered('test-1');
       
-      knownNodes.set(123456789, targetNode);
-      (isNodeOnline as jest.Mock).mockReturnValue(true);
-      (mockDevice.sendText as jest.Mock).mockResolvedValue(true);
-
-      const queuedMessage = {
-        id: 'msg-123',
-        fromNode: 111111111,
-        toNode: 123456789,
-        message: 'Queued Hello',
-        maxAttempts: 10
-      };
-
-      (mockMessageQueue.getNextMessages as jest.Mock).mockReturnValue([queuedMessage]);
-
-      await processQueuedMessages(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config
-      );
-
-      expect(mockMessageQueue.markProcessing).toHaveBeenCalledWith('msg-123');
-      expect(mockDevice.sendText).toHaveBeenCalledWith('📬 [Delayed] Queued Hello', 123456789);
-      expect(mockMessageQueue.markDelivered).toHaveBeenCalledWith('msg-123');
-    });
-
-    test('skips offline nodes', async () => {
-      const targetNode: NodeInfo = {
-        num: 123456789,
-        user: { longName: 'Test Node', shortName: 'test' },
-        lastSeen: new Date(Date.now() - 10 * 60 * 1000)
-      };
+      expect(marked).toBe(true);
+      expect(queueManager.getMessagesForNode(123456)).toHaveLength(0);
       
-      knownNodes.set(123456789, targetNode);
-      (isNodeOnline as jest.Mock).mockReturnValue(false);
+      const stats = queueManager.getStats();
+      expect(stats.totalDelivered).toBe(1);
+    });
+  });
 
-      const queuedMessage = {
-        id: 'msg-123',
-        fromNode: 111111111,
-        toNode: 123456789,
-        message: 'Queued Hello',
-        maxAttempts: 10
-      };
+  describe('getDeliveryStats', () => {
+    test('should return current statistics', () => {
+      const stats = getDeliveryStats();
+      
+      expect(stats).toHaveProperty('totalQueued');
+      expect(stats).toHaveProperty('totalDelivered');
+      expect(stats).toHaveProperty('totalFailed');
+      expect(stats).toHaveProperty('totalExpired');
+      expect(stats).toHaveProperty('currentQueueSize');
+      expect(stats).toHaveProperty('nodeQueues');
+    });
+  });
 
-      (mockMessageQueue.getNextMessages as jest.Mock).mockReturnValue([queuedMessage]);
+  describe('delivery system lifecycle', () => {
+    const mockIsNodeOnline = jest.fn();
+    const mockDirectSend = jest.fn();
 
-      await processQueuedMessages(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config
-      );
-
-      expect(mockMessageQueue.markProcessing).not.toHaveBeenCalled();
-      expect(mockDevice.sendText).not.toHaveBeenCalled();
+    beforeEach(() => {
+      mockIsNodeOnline.mockReset();
+      mockDirectSend.mockReset();
+      stopDeliverySystem(); // Ensure clean state
     });
 
-    test('marks unknown nodes as failed', async () => {
-      const queuedMessage = {
-        id: 'msg-123',
-        fromNode: 111111111,
-        toNode: 999999999, // Unknown node
-        message: 'Queued Hello',
-        maxAttempts: 10
-      };
+    test('should start and stop delivery system', () => {
+      const config = startDeliverySystem(mockIsNodeOnline, mockDirectSend);
+      
+      expect(config).toHaveProperty('maxRetries');
+      expect(config).toHaveProperty('retryInterval');
+      
+      const stopped = stopDeliverySystem();
+      expect(stopped).toBe(true);
+    });
 
-      (mockMessageQueue.getNextMessages as jest.Mock).mockReturnValue([queuedMessage]);
-
-      await processQueuedMessages(
-        mockDevice as any,
-        knownNodes,
-        mockMessageQueue as any,
-        config
-      );
-
-      expect(mockMessageQueue.markFailed).toHaveBeenCalledWith(
-        'msg-123',
-        'Target node no longer known'
-      );
+    test('should not start system twice', () => {
+      const config1 = startDeliverySystem(mockIsNodeOnline, mockDirectSend);
+      const config2 = startDeliverySystem(mockIsNodeOnline, mockDirectSend);
+      
+      expect(config1).toEqual(config2);
+      
+      stopDeliverySystem();
     });
   });
 });

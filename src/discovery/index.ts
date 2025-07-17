@@ -159,7 +159,7 @@ export class DiscoveryClientModular extends EventEmitter {
     this.discoveryTimer = setInterval(async () => {
       if (!this.isActive) return;
       await this.runPeerDiscovery();
-    }, 30000); // Every 30 seconds (reduced from 60)
+    }, 120000); // Every 2 minutes to respect rate limits
   }
 
   private async runPeerDiscovery(): Promise<void> {

@@ -1,6 +1,7 @@
 {
   "name": "encryptedmeshlink",
   "version": "1.0.0",
+  "author": "kiisu d'salyss",
   "description": "EncryptedMeshLink - Internet bridge system for Meshtastic mesh networks with encrypted P2P discovery",
   "main": "encryptedmeshlink.ts",
   "scripts": {
@@ -28,7 +29,6 @@
     "lora",
     "void"
   ],
-  "author": "",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0",
@@ -40,6 +40,7 @@
     "@meshtastic/protobufs": "npm:@jsr/meshtastic__protobufs@^2.7.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.0.13",
+    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
     "better-sqlite3": "^12.2.0",
     "dotenv": "^17.2.0",
@@ -47,6 +48,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
+    "uuid": "^11.1.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {

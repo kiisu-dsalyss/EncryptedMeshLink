@@ -1,77 +1,59 @@
+import { v4 as uuidv4 } from 'uuid';
+import { DelayedDeliveryResult, SendMessageOptions, QueuedMessage } from './types';
+import { queueManager } from './queueManager';
+
 /**
- * Send Message Function
- * Try to send a message immediately, queue if target is offline
+ * Send a message with delayed delivery support
+ * If the target node is offline, the message will be queued for later delivery
  */
-
-import type { MeshDevice } from "@jsr/meshtastic__core";
-import { NodeInfo } from '../relayHandler/types';
-import { MessageQueue } from '../messageQueue/index';
-import { MessagePriority } from '../messageQueue/types';
-import { isNodeOnline } from '../relayHandler/nodeMatching';
-import { DelayedDeliveryResult, DelayedDeliveryConfig } from './types';
-
 export async function sendMessage(
-  device: MeshDevice,
-  knownNodes: Map<number, NodeInfo>,
-  messageQueue: MessageQueue,
-  config: DelayedDeliveryConfig,
-  fromNode: number,
   targetNodeId: number,
   message: string,
-  priority: MessagePriority = MessagePriority.NORMAL
+  isNodeOnline: (nodeId: number) => boolean,
+  directSend: (nodeId: number, message: string) => Promise<boolean>,
+  options: SendMessageOptions = {}
 ): Promise<DelayedDeliveryResult> {
-  const targetNode = knownNodes.get(targetNodeId);
-  
-  if (!targetNode) {
-    return {
-      delivered: false,
-      queued: false,
-      reason: `Target node ${targetNodeId} not found`
-    };
-  }
+  const {
+    priority = 1,
+    retries = 3,
+    ttl = 24 * 60 * 60 * 1000, // 24 hours default
+    forceQueue = false
+  } = options;
 
-  const targetName = targetNode.user?.longName || targetNode.user?.shortName || `Node-${targetNodeId}`;
-  const isOnline = isNodeOnline(targetNode);
-
-  if (isOnline) {
-    // Try immediate delivery
+  // Try direct delivery if node is online and not forced to queue
+  if (!forceQueue && isNodeOnline(targetNodeId)) {
     try {
-      await device.sendText(message, targetNodeId);
-      console.log(`📤 Immediate delivery: ${message.substring(0, 50)}... → ${targetName}`);
-      
-      return {
-        delivered: true,
-        queued: false,
-        reason: `Delivered immediately to ${targetName} (online)`
-      };
+      const success = await directSend(targetNodeId, message);
+      if (success) {
+        return {
+          success: true,
+          queued: false
+        };
+      }
     } catch (error) {
-      console.error(`❌ Immediate delivery failed to ${targetName}:`, error);
-      // Fall through to queuing
+      console.warn(`Direct send failed for node ${targetNodeId}, queuing message:`, error);
     }
   }
 
-  // Queue for delayed delivery
-  try {
-    const ttl = config.maxQueueTime * 3600; // Convert hours to seconds
-    const messageId = await messageQueue.enqueue(fromNode, targetNodeId, message, {
-      priority,
-      ttl,
-      maxAttempts: config.maxDeliveryAttempts
-    });
+  // Queue the message for delayed delivery
+  const messageId = uuidv4();
+  const queuedMessage: QueuedMessage = {
+    id: messageId,
+    targetNodeId,
+    message,
+    priority,
+    queuedAt: Date.now(),
+    retryCount: 0,
+    expiresAt: Date.now() + ttl
+  };
 
-    console.log(`📬 Queued message for offline node ${targetName} (ID: ${messageId.substring(0, 8)}...)`);
-    
-    return {
-      delivered: false,
-      queued: true,
-      reason: `${targetName} is offline - message queued for delivery (${config.maxQueueTime}h TTL)`
-    };
-  } catch (error) {
-    console.error(`❌ Failed to queue message:`, error);
-    return {
-      delivered: false,
-      queued: false,
-      reason: `Failed to queue message: ${error}`
-    };
-  }
+  queueManager.addMessage(queuedMessage);
+
+  console.log(`📨 Message queued for offline node ${targetNodeId} (ID: ${messageId})`);
+
+  return {
+    success: true,
+    messageId,
+    queued: true
+  };
 }

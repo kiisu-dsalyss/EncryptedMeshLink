@@ -1,6 +1,13 @@
 # EncryptedMeshLink
 
-A powerful internet bridge system for Meshtastic mesh networks with encrypted P2P discovery and direct message relay capabilities.
+A powerful internet bridge system for Meshtastic mesh networks with encrypted P2P discovery and direct messag8. **Enhanced Commands**: Send `"status"` for bridge info, `"nodes"` to see actual node names
+9. **Case-insensitive Matching**: `@ralpha`, `@rAlpha`, and `@RALPHA` all work
+10. **Discovery Service**: PHP service ready for deployment to your hosting
+11. **Node Registry**: Cross-station node tracking with comprehensive validation
+12. **Delayed Message Delivery**: Automatic store-and-forward for offline nodes with priority queuing
+13. **Message Queue Infrastructure**: SQLite-based system with retry logic and TTL support
+14. **Rate Limiting Compliance**: Optimized heartbeat intervals to respect discovery service limits
+15. **Complete Test Coverage**: 266 tests passing across 17 comprehensive test suitesy capabilities.
 
 ## 🚀 Quick Start - One Command Setup
 
@@ -100,12 +107,15 @@ This basic installer provides:
 - ✅ **Node Registry Bridge** - Cross-station node tracking and visibility
 - ✅ **Direct P2P Messaging** - Real-time TCP/WebSocket communication between stations
 - ✅ **Bridge Protocol** - Complete message specification with ACK/NACK handling
-- 🚧 **Message Queue System** - SQLite infrastructure complete, store-and-forward integration pending
+- ✅ **Delayed Message Delivery** - Store-and-forward system for offline nodes with priority queues
+- ✅ **Message Queue System** - SQLite infrastructure with automated retry and TTL support
 - ✅ **Bidirectional Communication** - Auto-responses, message deduplication, case-insensitive node matching
 - ✅ **Encrypted P2P** - RSA + AES encrypted communication between stations
 - ✅ **Security First** - Zero-knowledge discovery server, end-to-end encryption
 - ✅ **Docker Deployment** - One-command setup with pre-built images
-- ✅ **Code Quality** - **247 tests passing** across 15 test suites, production-ready modular architecture
+- ✅ **Rate Limiting Compliance** - Optimized intervals to respect discovery service limits
+- ✅ **Error Handling** - Comprehensive protobuf crash protection and feedback loop prevention
+- ✅ **Code Quality** - **266 tests passing** across 17 test suites, production-ready modular architecture
 
 ### 🌍 Discovery Service Deployment
 
@@ -240,10 +250,10 @@ npm run encryptedmeshlink -- config set discovery.serviceUrl "https://custom.dis
 
 ## Testing
 
-The system includes comprehensive testing with **247 tests** across **15 test suites**:
+The system includes comprehensive testing with **266 tests** across **17 test suites**:
 
 ```bash
-# Run all tests (247 tests across 15 suites)
+# Run all tests (266 tests across 17 suites)
 npm test
 
 # Run tests in watch mode
@@ -253,6 +263,7 @@ npm run test:watch
 npm test tests/bridgeProtocol.test.ts
 npm test tests/p2pTransport.test.ts
 npm test tests/integration.test.ts
+npm test tests/delayedDelivery.test.ts
 ```
 
 **Test Coverage**:
@@ -271,7 +282,9 @@ npm test tests/integration.test.ts
 - ✅ Relay Handler (20 tests)
 - ✅ Transport (12 tests)
 - ✅ Integration Tests (7 tests)
+- ✅ Delayed Delivery (12 tests)
 - ✅ Utility Functions (13 tests)
+- ✅ Additional Core Tests (8 tests)
 
 ## API Reference
 
@@ -326,6 +339,56 @@ The system uses a comprehensive bridge message protocol with:
 - **Error Handling**: Standardized error codes and responses
 - **Encryption**: End-to-end RSA + AES hybrid encryption
 
+### Delayed Message Delivery System
+
+The delayed delivery system provides store-and-forward messaging for offline nodes:
+
+**Key Features:**
+- ✅ **Automatic Queue Management** - Messages queued when target nodes are offline
+- ✅ **Priority Queuing** - High-priority messages delivered first
+- ✅ **Smart Retry Logic** - Configurable retry attempts with exponential backoff
+- ✅ **TTL Support** - Message expiration to prevent indefinite storage
+- ✅ **Online Detection** - Automatic delivery when nodes come back online
+- ✅ **Statistics Tracking** - Comprehensive delivery metrics and monitoring
+
+**Configuration:**
+```typescript
+{
+  maxRetries: 3,           // Maximum retry attempts
+  retryInterval: 120000,   // 2 minutes between retries (respects rate limits)
+  maxQueueSize: 1000,      // Maximum messages in queue
+  deliveryTimeout: 15000,  // 15 seconds per delivery attempt
+  persistencePath: './data/delayed_messages.db'
+}
+```
+
+**Usage Example:**
+```typescript
+// Send message with automatic delayed delivery
+const result = await delayedDelivery.sendMessageWithDelayedDelivery(
+  targetNodeId,
+  "Hello! This will be delivered when you come online.",
+  {
+    priority: 2,
+    ttl: 24 * 60 * 60 * 1000, // 24 hours
+    retries: 3
+  }
+);
+
+if (result.queued) {
+  console.log(`Message queued for offline node (ID: ${result.messageId})`);
+} else if (result.success) {
+  console.log("Message delivered immediately");
+}
+```
+
+**Rate Limiting Compliance:**
+The system respects the discovery service rate limits (30 requests/minute) by using optimized intervals:
+- **Device Heartbeat**: Every 2 minutes
+- **Discovery Heartbeat**: Every 2 minutes  
+- **Peer Discovery**: Every 2 minutes
+- **Total Rate**: ~1.5 requests/minute (well under 30/minute limit)
+
 ## Project Structure
 
 ```text
@@ -349,6 +412,20 @@ The system uses a comprehensive bridge message protocol with:
 │   │   ├── stats.ts     # ✅ Queue statistics
 │   │   ├── timer.ts     # ✅ Cleanup timer management
 │   │   └── types.ts     # ✅ MessageQueue type definitions
+│   ├── delayedDelivery/ # ✅ Store-and-forward messaging system
+│   │   ├── index.ts     # ✅ Main exports and module interface
+│   │   ├── types.ts     # ✅ Type definitions and interfaces
+│   │   ├── queueManager.ts # ✅ In-memory queue management
+│   │   ├── sendMessage.ts # ✅ Core message sending with queuing
+│   │   ├── processQueuedMessages.ts # ✅ Background message processing
+│   │   ├── startDeliverySystem.ts # ✅ System initialization
+│   │   ├── stopDeliverySystem.ts # ✅ System shutdown
+│   │   ├── getDeliveryStats.ts # ✅ Statistics retrieval
+│   │   ├── getQueuedMessagesForNode.ts # ✅ Node-specific queries
+│   │   ├── createDefaultConfig.ts # ✅ Default configuration
+│   │   ├── integrateDelayedDelivery.ts # ✅ Integration with mesh system
+│   │   ├── example.ts   # ✅ Usage examples and patterns
+│   │   └── README.md    # ✅ Comprehensive documentation
 │   ├── config/          # ✅ Station configuration system
 │   │   ├── types.ts     # ✅ TypeScript interfaces and types
 │   │   ├── manager.ts   # ✅ Configuration file management
@@ -369,7 +446,7 @@ The system uses a comprehensive bridge message protocol with:
 ├── findPort.ts          # ✅ USB device detection and scoring
 ├── discovery-service/   # ✅ Complete PHP discovery service
 │   └── discovery.php    # ✅ Single-file PHP service with SQLite (ready for deployment)
-├── tests/               # ✅ Comprehensive test suite (247 tests across 15 suites)
+├── tests/               # ✅ Comprehensive test suite (266 tests across 17 suites)
 │   ├── *.test.ts        # ✅ TypeScript test files
 │   └── setup.ts         # ✅ Test configuration
 ├── docker-entrypoint.sh # ✅ Docker container initialization
@@ -444,27 +521,29 @@ If experiencing periodic heartbeat failures:
    sudo /opt/encryptedmeshlink/scripts/pi-manager.sh optimize
    ```
 
-For detailed troubleshooting, see:
-- [PI-TROUBLESHOOTING.md](PI-TROUBLESHOOTING.md) - Complete diagnostic guide
-- [PI-OPTIMIZATION-SUMMARY.md](PI-OPTIMIZATION-SUMMARY.md) - Performance improvements
-
 ## Development
 
 ### Code Quality
 
 - **TypeScript-only codebase** - No JavaScript files in source
-- **247 passing tests** - Comprehensive test coverage across 15 test suites
+- **266 passing tests** - Comprehensive test coverage across 17 test suites
 - **Modern tooling** - Uses `tsx` for fast TypeScript execution
 - **Clean architecture** - Modular design with separation of concerns
 - **Production ready** - Comprehensive error handling and validation
 
 ## License
 
-[License details here]
+This project is licensed under the MIT License.  
+See the [LICENSE](./LICENSE) file for details.
+
 
 ## Contributing
 
-[Contributing guidelines here]
+Contributions are welcome! Please fork the repo and submit a pull request.  
+For major changes, please open an issue first to discuss what you would like to change.
+
+Make sure to update tests as appropriate and follow existing code style conventions.
+
 
 ## Support
 

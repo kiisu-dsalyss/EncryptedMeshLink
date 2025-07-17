@@ -1,14 +1,24 @@
-/**
- * Stop Delivery System Function
- * Stop the delayed message delivery system
- */
+import { getDeliverySystemState } from './startDeliverySystem';
 
-export function stopDeliverySystem(deliveryTimer: NodeJS.Timeout): void {
-  console.log('🛑 Stopping delayed message delivery system...');
+/**
+ * Stop the delayed delivery system
+ * Halts periodic processing but keeps queued messages
+ */
+export function stopDeliverySystem(): boolean {
+  const deliverySystem = getDeliverySystemState();
   
-  if (deliveryTimer) {
-    clearInterval(deliveryTimer);
+  if (!deliverySystem?.isRunning) {
+    console.warn("⚠️ Delayed delivery system is not running");
+    return false;
   }
 
-  console.log('✅ Delayed delivery stopped');
+  if (deliverySystem.intervalId) {
+    clearInterval(deliverySystem.intervalId);
+    deliverySystem.intervalId = undefined;
+  }
+
+  deliverySystem.isRunning = false;
+  
+  console.log("🛑 Delayed delivery system stopped");
+  return true;
 }

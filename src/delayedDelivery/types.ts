@@ -1,31 +1,52 @@
 /**
- * Delayed Delivery Types
- * Type definitions for the delayed message delivery system
+ * Delayed Message Delivery System Types
  */
 
-import { MessagePriority } from '../messageQueue/types';
-
 export interface DelayedDeliveryConfig {
-  maxQueueTime: number; // Maximum time to keep messages queued (hours)
-  deliveryRetryInterval: number; // How often to check for delivery (seconds)
-  maxDeliveryAttempts: number; // Maximum attempts before giving up
+  maxRetries: number;
+  retryInterval: number; // milliseconds
+  maxQueueSize: number;
+  persistencePath?: string;
+  deliveryTimeout: number; // milliseconds
 }
 
-export interface DelayedDeliveryResult {
-  delivered: boolean;
-  queued: boolean;
-  reason: string;
+export interface QueuedMessage {
+  id: string;
+  targetNodeId: number;
+  message: string;
+  priority: number;
+  queuedAt: number; // timestamp
+  retryCount: number;
+  lastAttempt?: number; // timestamp
+  expiresAt?: number; // timestamp
 }
 
 export interface DelayedDeliveryStats {
-  active: boolean;
-  queueStats: any; // From MessageQueue['getStats']
-  config: DelayedDeliveryConfig;
+  totalQueued: number;
+  totalDelivered: number;
+  totalFailed: number;
+  totalExpired: number;
+  currentQueueSize: number;
+  nodeQueues: Record<number, number>; // nodeId -> message count
+}
+
+export interface DelayedDeliveryResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
+  queued?: boolean;
 }
 
 export interface SendMessageOptions {
-  priority?: MessagePriority;
-  fromNode: number;
-  targetNodeId: number;
-  message: string;
+  priority?: number;
+  retries?: number;
+  ttl?: number; // time to live in milliseconds
+  forceQueue?: boolean; // force queuing even if node is online
+}
+
+export interface DeliverySystemState {
+  isRunning: boolean;
+  config: DelayedDeliveryConfig;
+  stats: DelayedDeliveryStats;
+  intervalId?: NodeJS.Timeout;
 }

@@ -1,156 +1,238 @@
 # Delayed Message Delivery System
 
-A modular system for automatically queuing and delivering messages to offline mesh nodes.
+A store-and-forward messaging system for Meshtastic mesh networks that automatically queues messages for offline nodes and delivers them when the nodes come back online.
 
-## 🎯 Features
+## Overview
 
-- **Smart Queuing**: Messages to offline nodes are automatically queued for later delivery
-- **Online Detection**: Monitors node status changes (offline → online) using `lastSeen` timestamps  
-- **Automatic Delivery**: Background process retries queued messages when targets come online
-- **User Feedback**: Informs senders when messages are queued vs. immediately delivered
-- **Configurable**: TTL, retry intervals, and max attempts are all configurable
-- **Sender Notifications**: Notifies senders of successful delayed delivery or permanent failures
+The Delayed Message Delivery System provides reliable message delivery in mesh networks where nodes may frequently go offline due to power constraints, mobility, or environmental factors. It implements a smart queuing mechanism that:
 
-## 🏗️ Architecture
+- **Automatic Detection**: Detects when target nodes are offline
+- **Smart Queuing**: Queues messages for delivery when nodes come back online
+- **Priority System**: Supports message prioritization (higher numbers = higher priority)
+- **Retry Logic**: Configurable retry attempts with exponential backoff
+- **TTL Support**: Time-to-live for messages to prevent indefinite storage
+- **Statistics**: Comprehensive delivery statistics and monitoring
 
-Following the established "one function per file" pattern:
+## Architecture
+
+The system follows a modular one-function-per-file architecture:
 
 ```
 src/delayedDelivery/
 ├── types.ts                    # Type definitions
-├── sendMessage.ts              # Try immediate delivery, queue if offline
-├── processQueuedMessages.ts    # Background processing of queued messages
-├── startDeliverySystem.ts      # Start the delivery timer
-├── stopDeliverySystem.ts       # Stop the delivery timer
-├── getDeliveryStats.ts         # Get system statistics
-├── getQueuedMessagesForNode.ts # Get queued messages for a node
+├── queueManager.ts             # In-memory queue management
+├── sendMessage.ts              # Core message sending with queuing
+├── processQueuedMessages.ts    # Background processing
+├── startDeliverySystem.ts      # System initialization
+├── stopDeliverySystem.ts       # System shutdown
+├── getDeliveryStats.ts         # Statistics retrieval
+├── getQueuedMessagesForNode.ts # Node-specific queue queries
 ├── createDefaultConfig.ts      # Default configuration
-├── integrateDelayedDelivery.ts # Integration helper
-├── example.ts                  # Usage example
-└── index.ts                    # Main exports
+├── integrateDelayedDelivery.ts # Integration with mesh system
+└── example.ts                  # Usage examples
 ```
 
-## 🚀 Usage
-
-### Basic Integration
+## Quick Start
 
 ```typescript
-import { 
-  sendMessage, 
-  startDeliverySystem, 
-  createDefaultConfig 
-} from './delayedDelivery';
+import { integrateDelayedDelivery } from './src/delayedDelivery';
 
-// Create configuration
-const config = createDefaultConfig({
-  maxQueueTime: 48,        // Keep messages for 48 hours
-  deliveryRetryInterval: 60, // Check every minute
-  maxDeliveryAttempts: 5   // Try 5 times before giving up
+// Set up delayed delivery
+const delayedDelivery = integrateDelayedDelivery(device, nodeManager, {
+  maxRetries: 3,
+  retryInterval: 30000, // 30 seconds
+  maxQueueSize: 1000,
+  deliveryTimeout: 10000 // 10 seconds
 });
 
-// Start background delivery system
-const deliveryTimer = await startDeliverySystem(
-  device, knownNodes, messageQueue, config
+// Send a message with automatic delayed delivery
+const result = await delayedDelivery.sendMessageWithDelayedDelivery(
+  targetNodeId,
+  "Hello! This will be delivered when you come online.",
+  {
+    priority: 2,
+    ttl: 24 * 60 * 60 * 1000, // 24 hours
+    retries: 3
+  }
 );
 
-// Send message (will queue if offline)
-const result = await sendMessage(
-  device, knownNodes, messageQueue, config,
-  fromNodeId, targetNodeId, "Hello!", MessagePriority.NORMAL
-);
-
-if (result.delivered) {
-  console.log("✅ Delivered immediately");
-} else if (result.queued) {
-  console.log("📬 Queued for delayed delivery");
-} else {
-  console.log("❌ Failed:", result.reason);
+if (result.queued) {
+  console.log(`Message queued for offline node (ID: ${result.messageId})`);
+} else if (result.success) {
+  console.log("Message delivered immediately");
 }
 ```
 
-### Integration with Relay Handler
+## Configuration
 
-```typescript
-// In your relay handler
-const matchResult = findBestNodeMatch(knownNodes, targetIdentifier);
-
-if (matchResult) {
-  const { nodeId } = matchResult;
-  
-  // Use delayed delivery instead of direct sending
-  const result = await sendMessage(
-    device, knownNodes, messageQueue, config,
-    packet.from, nodeId, message
-  );
-  
-  // Send confirmation to sender
-  await device.sendText(result.reason, packet.from);
-}
-```
-
-## ⚙️ Configuration
+### DelayedDeliveryConfig
 
 ```typescript
 interface DelayedDeliveryConfig {
-  maxQueueTime: number;         // Hours to keep messages (default: 24)
-  deliveryRetryInterval: number; // Seconds between checks (default: 30)
-  maxDeliveryAttempts: number;   // Max attempts before giving up (default: 10)
+  maxRetries: number;        // Maximum retry attempts (default: 3)
+  retryInterval: number;     // Time between retries in ms (default: 30000)
+  maxQueueSize: number;      // Maximum messages in queue (default: 1000)
+  deliveryTimeout: number;   // Timeout per delivery attempt (default: 10000)
+  persistencePath?: string;  // Path for SQLite persistence (future)
 }
 ```
 
-## 🔄 How It Works
-
-1. **Message Sending**: When a message is sent via `sendMessage()`:
-   - Check if target node is online (using `lastSeen` timestamp)
-   - If online: try immediate delivery
-   - If offline or delivery fails: queue message
-
-2. **Background Processing**: `processQueuedMessages()` runs periodically:
-   - Retrieves pending messages from queue
-   - Checks if target nodes are now online
-   - Attempts delivery to online nodes
-   - Notifies senders of success/failure
-
-3. **User Feedback**: 
-   - Immediate confirmation when messages are delivered or queued
-   - Notification when queued messages are successfully delivered
-   - Warning when messages permanently fail after max attempts
-
-## 📊 Statistics
+### SendMessageOptions
 
 ```typescript
-const stats = getDeliveryStats(messageQueue, config, isActive);
-console.log(stats);
-// {
-//   active: true,
-//   queueStats: { pending: 5, delivered: 23, failed: 2 },
-//   config: { maxQueueTime: 24, ... }
-// }
+interface SendMessageOptions {
+  priority?: number;    // Message priority (higher = more important)
+  retries?: number;     // Override max retries for this message
+  ttl?: number;         // Time to live in milliseconds
+  forceQueue?: boolean; // Force queuing even if node appears online
+}
 ```
 
-## 🧪 Testing
+## Key Features
+
+### 1. Smart Online Detection
+
+The system determines if a node is online by checking if it was seen within the last 5 minutes:
+
+```typescript
+const isNodeOnline = (nodeId: number): boolean => {
+  const recentThreshold = Date.now() - (5 * 60 * 1000);
+  const node = nodeManager.getKnownNodes().get(nodeId);
+  return node && node.lastSeen && node.lastSeen.getTime() > recentThreshold;
+};
+```
+
+### 2. Priority-Based Queue
+
+Messages are automatically sorted by priority within each node's queue:
+
+```typescript
+await sendMessageWithDelayedDelivery(nodeId, "High priority alert", {
+  priority: 10  // Will be delivered before lower priority messages
+});
+```
+
+### 3. Automatic Retry Logic
+
+Failed deliveries are automatically retried with configurable intervals:
+
+- Initial attempt when message is queued
+- Retry attempts at configured intervals
+- Exponential backoff for repeated failures
+- Automatic failure after max retries exceeded
+
+### 4. TTL (Time To Live)
+
+Messages automatically expire after their TTL to prevent storage bloat:
+
+```typescript
+await sendMessageWithDelayedDelivery(nodeId, "Time-sensitive message", {
+  ttl: 60 * 60 * 1000  // Expires after 1 hour
+});
+```
+
+## API Reference
+
+### Core Functions
+
+#### `sendMessage(targetNodeId, message, isNodeOnline, directSend, options?)`
+- Attempts direct delivery if node is online, otherwise queues the message
+- Returns `DelayedDeliveryResult` with success status and message ID
+
+#### `processQueuedMessages(config, isNodeOnline, directSend)`
+- Processes all queued messages ready for retry
+- Cleans up expired messages
+- Called automatically by the delivery system
+
+#### `startDeliverySystem(isNodeOnline, directSend, config?)`
+- Starts the background processing system
+- Returns the final configuration used
+
+#### `stopDeliverySystem()`
+- Stops background processing
+- Preserves queued messages
+
+### Utility Functions
+
+#### `getDeliveryStats()`
+- Returns comprehensive delivery statistics
+- Includes queue sizes per node
+
+#### `getQueuedMessagesForNode(nodeId)`
+- Returns all queued messages for a specific node
+- Sorted by priority
+
+### Integration Function
+
+#### `integrateDelayedDelivery(device, nodeManager, config?)`
+Returns an object with:
+- `sendMessageWithDelayedDelivery()` - Enhanced send function
+- `isNodeOnline()` - Node status checker
+- `sendDirectly()` - Bypass delayed delivery
+- `config` - Final configuration
+
+## Statistics and Monitoring
+
+The system provides comprehensive statistics:
+
+```typescript
+const stats = getDeliveryStats();
+console.log({
+  totalQueued: stats.totalQueued,       // Total messages ever queued
+  totalDelivered: stats.totalDelivered, // Successfully delivered
+  totalFailed: stats.totalFailed,       // Permanently failed
+  totalExpired: stats.totalExpired,     // Expired due to TTL
+  currentQueueSize: stats.currentQueueSize, // Currently queued
+  nodeQueues: stats.nodeQueues          // Per-node queue sizes
+});
+```
+
+## Error Handling
+
+The system includes comprehensive error handling:
+
+- **Network Errors**: Caught and retried according to configuration
+- **Timeout Errors**: Delivery attempts timeout after configured duration
+- **Queue Overflow**: Messages rejected if queue exceeds max size
+- **Expired Messages**: Automatically cleaned up during processing
+
+## Performance Considerations
+
+- **Memory Usage**: In-memory queue scales with message count
+- **Processing Interval**: Default 30-second intervals balance responsiveness and efficiency
+- **Delivery Timeout**: 10-second default prevents hanging on slow connections
+- **Queue Size Limits**: 1000 message default prevents memory exhaustion
+
+## Future Enhancements
+
+1. **SQLite Persistence**: Survive application restarts
+2. **Encryption**: End-to-end encryption for queued messages
+3. **Compression**: Reduce storage requirements for large messages
+4. **Advanced Routing**: Multi-hop delivery through intermediate nodes
+5. **Delivery Receipts**: Confirmation of successful delivery
+6. **Web Dashboard**: Real-time monitoring interface
+
+## Example Use Cases
+
+1. **Emergency Communications**: High-priority alerts delivered when rescuers come online
+2. **IoT Sensor Data**: Store sensor readings for later collection
+3. **Chat Messages**: Personal messages delivered when recipients return
+4. **System Notifications**: Administrative messages for network operators
+5. **Firmware Updates**: Delivery notifications for over-the-air updates
+
+## Contributing
+
+When adding features:
+1. Follow the one-function-per-file architecture
+2. Add comprehensive error handling
+3. Include TypeScript types
+4. Update this README
+5. Add unit tests
+
+## Testing
 
 ```bash
-npm test tests/delayedDelivery.test.ts
+npm test # Run all tests including delayed delivery tests
 ```
 
-Tests cover:
-- Configuration creation and overrides
-- Immediate delivery to online nodes
-- Queuing for offline nodes
-- Background processing of queued messages
-- Error handling and edge cases
-
-## 🔗 Dependencies
-
-- **Message Queue System** (`src/messageQueue`): SQLite-based persistence
-- **Node Matching** (`src/relayHandler/nodeMatching`): Online status detection
-- **Meshtastic Core**: Device communication
-
-## 💡 Benefits
-
-- **Reliability**: Messages aren't lost when nodes are temporarily offline
-- **User Experience**: Clear feedback about message status
-- **Mesh Network Resilience**: Handles the reality of intermittent connectivity
-- **Scalable**: Uses existing message queue infrastructure
-- **Configurable**: Adapts to different network conditions and requirements
+See `tests/` directory for comprehensive test coverage.

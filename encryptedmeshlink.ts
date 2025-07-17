@@ -15,6 +15,7 @@ import { handleInstructionsRequest } from "./src/handlers/handleInstructionsRequ
 import { handleEchoMessage } from "./src/handlers/handleEchoMessage";
 import { registerLocalNodes } from "./src/handlers/registerLocalNodes";
 import { handlePeerDiscovered, handlePeerLost, handleDiscoveryError } from "./src/handlers/peerEvents";
+import { integrateDelayedDelivery } from "./src/delayedDelivery";
 import * as path from 'path';
 
 // Global cleanup state
@@ -140,80 +141,114 @@ async function main() {
 
     // Set up all event listeners BEFORE configuring
     device.events.onMyNodeInfo.subscribe(async (nodeInfo) => {
-      myNodeNum = nodeInfo.myNodeNum;
-      console.log(`📱 Station node number: ${myNodeNum}`);
-      
-      // Initialize bridge services for internet connectivity
       try {
-        globalDiscoveryClient = await initializeBridge(
-          config,
-          (peer) => handlePeerDiscovered(remoteNodes, peer),
-          (stationId) => handlePeerLost(remoteNodes, stationId),
-          (error) => handleDiscoveryError(error)
-        );
-        bridgeInitialized = true;
-        console.log("🌉 Internet bridge services started successfully");
+        myNodeNum = nodeInfo.myNodeNum;
+        console.log(`📱 Station node number: ${myNodeNum}`);
         
-        // Register any existing local nodes with the registry
-        await registerLocalNodes(device, knownNodes, config);
-      } catch (bridgeError) {
-        console.warn("⚠️ Bridge initialization failed, running in local-only mode:", bridgeError);
-        // Continue without bridge - local functionality still works
+        // Initialize bridge services for internet connectivity
+        try {
+          globalDiscoveryClient = await initializeBridge(
+            config,
+            (peer) => handlePeerDiscovered(remoteNodes, peer),
+            (stationId) => handlePeerLost(remoteNodes, stationId),
+            (error) => handleDiscoveryError(error)
+          );
+          bridgeInitialized = true;
+          console.log("🌉 Internet bridge services started successfully");
+          
+          // Register any existing local nodes with the registry
+          await registerLocalNodes(device, knownNodes, config);
+        } catch (bridgeError) {
+          console.warn("⚠️ Bridge initialization failed, running in local-only mode:", bridgeError);
+          // Continue without bridge - local functionality still works
+        }
+      } catch (error) {
+        console.error("❌ Failed to process node info:", error);
       }
     });
 
     device.events.onDeviceStatus.subscribe((status) => {
-      console.log(`📊 Device status changed: ${status}`);
-      if (status === 7) { // DeviceConfigured
-        console.log("✅ Device configured successfully!");
-        
-        // Show available nodes after configuration
-        setTimeout(() => {
-          nodeManager.showAvailableNodes(myNodeNum);
-        }, 3000);
+      try {
+        console.log(`📊 Device status changed: ${status}`);
+        if (status === 7) { // DeviceConfigured
+          console.log("✅ Device configured successfully!");
+          
+          // Show available nodes after configuration
+          setTimeout(() => {
+            nodeManager.showAvailableNodes(myNodeNum);
+          }, 3000);
+        }
+      } catch (error) {
+        console.error("❌ Failed to process device status:", error);
       }
     });
 
     // Listen for node info packets to build node list
     device.events.onNodeInfoPacket.subscribe((nodeInfo) => {
-      nodeManager.addNode(nodeInfo);
+      try {
+        nodeManager.addNode(nodeInfo);
+      } catch (error) {
+        console.warn('⚠️ Failed to process node info packet:', error instanceof Error ? error.message : 'Unknown error');
+      }
     });
 
     // Listen for text messages and handle relay commands
     device.events.onMessagePacket.subscribe(async (packet) => {
-      console.log(`📨 Received message from ${packet.from}: "${packet.data}"`);
-      
-      // Check if it's not from ourselves to avoid infinite loops
-      if (myNodeNum && packet.from !== myNodeNum && bridgeInitialized) {
-        const parsedMessage = MessageParser.parseMessage(packet.data);
+      try {
+        console.log(`📨 Received message from ${packet.from}: "${packet.data}"`);
         
-        switch (parsedMessage.type) {
-          case 'relay':
-            if (parsedMessage.targetIdentifier && parsedMessage.message) {
-              await handleRelayMessage(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, cryptoService, packet, parsedMessage.targetIdentifier, parsedMessage.message);
-            }
-            break;
-          case 'status':
-            await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, packet);
-            break;
-          case 'nodes':
-            await handleListNodesRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
-            break;
-          case 'instructions':
-            await handleInstructionsRequest(device, myNodeNum, packet);
-            break;
-          case 'echo':
-            await handleEchoMessage(device, myNodeNum, packet);
-            break;
+        // Skip processing error messages and status responses to avoid feedback loops
+        if (packet.data && (
+          packet.data.startsWith('❌') ||
+          packet.data.startsWith('✅') ||
+          packet.data.startsWith('📡') ||
+          packet.data.startsWith('📭') ||
+          packet.data.startsWith('📊') ||
+          packet.data.startsWith('🔗')
+        )) {
+          console.log("⚠️ Skipping status/error message to avoid feedback loop");
+          return;
         }
-      } else {
-        console.log("🔄 Skipping echo (message from self or no node info yet)");
+        
+        // Check if it's not from ourselves to avoid infinite loops
+        if (myNodeNum && packet.from !== myNodeNum && bridgeInitialized) {
+          const parsedMessage = MessageParser.parseMessage(packet.data);
+          
+          switch (parsedMessage.type) {
+            case 'relay':
+              if (parsedMessage.targetIdentifier && parsedMessage.message) {
+                await handleRelayMessage(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, cryptoService, packet, parsedMessage.targetIdentifier, parsedMessage.message);
+              }
+              break;
+            case 'status':
+              await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, packet);
+              break;
+            case 'nodes':
+              await handleListNodesRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
+              break;
+            case 'instructions':
+              await handleInstructionsRequest(device, myNodeNum, packet);
+              break;
+            case 'echo':
+              await handleEchoMessage(device, myNodeNum, packet);
+              break;
+          }
+        } else {
+          console.log("🔄 Skipping echo (message from self or no node info yet)");
+        }
+      } catch (error) {
+        console.error('❌ Failed to process message packet:', error instanceof Error ? error.message : 'Unknown error');
+        // Continue processing other messages instead of crashing
       }
     });
 
     // Debug: Listen to ALL mesh packets
     device.events.onMeshPacket.subscribe((packet) => {
-      console.log(`🔍 DEBUG: Received mesh packet from ${packet.from} to ${packet.to}`);
+      try {
+        console.log(`🔍 DEBUG: Received mesh packet from ${packet.from} to ${packet.to}`);
+      } catch (error) {
+        console.warn('⚠️ Failed to process mesh packet:', error instanceof Error ? error.message : 'Unknown error');
+      }
     });
 
     console.log("⚙️ Starting device configuration...");
@@ -222,6 +257,17 @@ async function main() {
     try {
       await device.configure();
       console.log("👂 Device configured, now listening for messages...");
+      
+      // Initialize delayed delivery system
+      const delayedDelivery = integrateDelayedDelivery(device, nodeManager, {
+        maxRetries: 3,
+        retryInterval: 30000, // 30 seconds
+        maxQueueSize: 500,
+        deliveryTimeout: 15000 // 15 seconds
+      });
+      
+      console.log("📨 Delayed delivery system initialized");
+      
     } catch (configError) {
       // Handle PKI timeout and other config errors gracefully
       if (configError && typeof configError === 'object' && 'error' in configError) {
@@ -275,7 +321,7 @@ async function main() {
     process.on('SIGINT', () => shutdown('SIGINT'));
     process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-    // Send a heartbeat every 30 seconds to keep connection alive
+    // Send a heartbeat every 2 minutes to keep connection alive while respecting rate limits
     setInterval(async () => {
       try {
         await device.heartbeat();
@@ -288,7 +334,7 @@ async function main() {
           console.error("💔 Heartbeat failed:", error);
         }
       }
-    }, 30000);
+    }, 120000);
 
     // Keep the program running
     console.log("🔗 EncryptedMeshLink station is running. Send a message to test bridging!");

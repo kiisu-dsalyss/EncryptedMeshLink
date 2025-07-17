@@ -1,15 +1,14 @@
-/**
- * Create Default Config Function
- * Create default configuration for delayed delivery system
- */
-
 import { DelayedDeliveryConfig } from './types';
 
-export function createDefaultConfig(overrides: Partial<DelayedDeliveryConfig> = {}): DelayedDeliveryConfig {
+/**
+ * Creates a default configuration for the delayed delivery system
+ */
+export function createDefaultConfig(): DelayedDeliveryConfig {
   return {
-    maxQueueTime: overrides.maxQueueTime || 24, // 24 hours default
-    deliveryRetryInterval: overrides.deliveryRetryInterval || 30, // 30 seconds default
-    maxDeliveryAttempts: overrides.maxDeliveryAttempts || 10,
-    ...overrides
+    maxRetries: 3,
+    retryInterval: 30000, // 30 seconds
+    maxQueueSize: 1000,
+    deliveryTimeout: 10000, // 10 seconds per delivery attempt
+    persistencePath: './data/delayed_messages.db'
   };
 }

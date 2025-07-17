@@ -11,6 +11,50 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 
 ## 🚀 Quick Start - One Command Setup
 
+### Ultra-Fast Pi Installation (NEW!) 🥧⚡
+
+**Fastest Pi setup - no repository clone required:**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/kiisu-dsalyss/EncryptedMeshLink/master/quick-setup.sh | bash
+```
+
+This ultra-fast installer provides:
+
+- ⚡ **Fastest Setup** - Direct Docker image pull (1-2 minutes total!)
+- 🎯 **Pi Optimized** - Uses `ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest`
+- 📦 **No Clone Required** - Downloads image directly, no repository needed
+- 🔧 **Auto Docker Install** - Installs Docker if not present
+- 🚀 **Instant Start** - Container running immediately after pull
+- 💾 **Minimal Resources** - Perfect for Pi's limited storage/memory
+
+**Perfect for Raspberry Pi users who want the absolute fastest setup!**
+
+#### Managing Quick Setup Installation
+
+After using `quick-setup.sh`, manage your station with these commands:
+
+```bash
+cd ~/encryptedmeshlink
+
+# View live logs
+docker logs -f eml-station
+
+# Check container status  
+docker ps
+
+# Restart container
+docker restart eml-station
+
+# Stop container
+docker stop eml-station
+
+# Update to latest Pi image
+docker pull ghcr.io/kiisu-dsalyss/encryptedmeshlink:pi-latest
+docker stop eml-station && docker rm eml-station
+# Then re-run the quick-setup.sh command
+```
+
 ### Primary Installation (RECOMMENDED) 🌟
 
 **Fast setup with pre-built Docker images - works on all platforms:**

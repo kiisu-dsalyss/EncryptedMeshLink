@@ -12,8 +12,11 @@ WORKDIR /app
 # Copy package files and npm configuration
 COPY package*.json .npmrc ./
 
-# Install dependencies with memory limits
-RUN npm install --max-old-space-size=512
+# Install dependencies with optimizations for ARM/Pi
+# Install all dependencies first (needed for tsx), then clean up dev deps
+RUN npm install --no-audit --no-fund \
+    && npm prune --production \
+    && npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -29,4 +32,4 @@ HEALTHCHECK --interval=60s --timeout=30s --start-period=10s --retries=2 \
     CMD npx tsx encryptedmeshlink.ts --health-check || exit 1
 
 # Default command with memory optimization
-CMD ["npx", "tsx", "--max-old-space-size=512", "encryptedmeshlink.ts"]
+CMD ["npx", "tsx", "encryptedmeshlink.ts"]

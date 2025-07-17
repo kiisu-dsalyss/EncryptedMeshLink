@@ -24,12 +24,14 @@ export async function handleListNodesRequest(
     
     // Add local nodes (compact format)
     if (knownNodes.size > 0) {
-      const sortedLocal = Array.from(knownNodes.entries()).sort((a, b) => a[0] - b[0]);
+      const sortedLocal = Array.from(knownNodes.entries())
+        .filter(([nodeNum]) => nodeNum !== myNodeNum && nodeNum !== packet.from) // Filter out self and requester
+        .sort((a, b) => a[0] - b[0]);
       
       for (const [nodeNum, nodeInfo] of sortedLocal) {
-        const name = nodeInfo.user?.longName || `Node-${nodeNum}`;
+        const longName = nodeInfo.user?.longName || `Node-${nodeNum}`;
         const shortName = nodeInfo.user?.shortName || "📱";
-        nodeLines.push(`📱 ${name} [${shortName}]`);
+        nodeLines.push(`📱 ${longName} | ${shortName} | ${nodeNum}`);
       }
     }
     
@@ -38,7 +40,7 @@ export async function handleListNodesRequest(
       const sortedRemote = Array.from(remoteNodes.entries()).sort((a, b) => a[0] - b[0]);
       
       for (const [nodeNum, nodeInfo] of sortedRemote) {
-        nodeLines.push(`🌍 Remote: ${nodeInfo.displayName} [${nodeInfo.shortName}]`);
+        nodeLines.push(`🌍 ${nodeInfo.displayName} | ${nodeInfo.shortName} | ${nodeNum}`);
       }
     }
     
@@ -47,7 +49,12 @@ export async function handleListNodesRequest(
     if (nodeLines.length === 0) {
       message = "📭 No nodes available";
     } else {
-      message = `📡 Nodes (${nodeLines.length}):\n${nodeLines.join('\n')}`;
+      // Get a sample node ID for the example
+      const sampleNodeId = Array.from(knownNodes.keys()).find(id => id !== myNodeNum && id !== packet.from) 
+        || Array.from(remoteNodes.keys())[0] 
+        || '123456';
+      
+      message = `📡 Nodes (${nodeLines.length}):\n${nodeLines.join('\n')}\n\n💬 Usage: @{nodeId} message\nExample: @${sampleNodeId} hello`;
     }
     
     if (packet.from && packet.from !== myNodeNum) {

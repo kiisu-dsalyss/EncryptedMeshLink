@@ -444,7 +444,7 @@ The system respects the discovery service rate limits (30 requests/minute) by us
 │   ├── messageParser.ts # ✅ Command parsing and routing
 │   ├── configCLI.ts     # ✅ Configuration CLI commands
 │   ├── crypto.ts        # ✅ Cryptography module with P2P encryption
-│   ├── discoveryClient.ts # ✅ Discovery service client
+│   ├── discovery/index.ts # ✅ Discovery service client
 │   ├── enhancedRelayHandler.ts # ✅ Internet bridge handler
 │   ├── messageQueue/    # ✅ SQLite message persistence system
 │   │   ├── index.ts     # ✅ Main MessageQueue class

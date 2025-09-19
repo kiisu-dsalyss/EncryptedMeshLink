@@ -98,6 +98,25 @@ else
     docker pull "$IMAGE"
 fi
 
+# Check if container already exists and handle it
+if docker ps -a --format '{{.Names}}' | grep -q "^eml-station$"; then
+    echo "🔄 Existing EncryptedMeshLink container found"
+    if docker ps --format '{{.Names}}' | grep -q "^eml-station$"; then
+        echo "🛑 Stopping running container..."
+        if ! docker ps &> /dev/null; then
+            sudo docker stop eml-station
+        else
+            docker stop eml-station
+        fi
+    fi
+    echo "🗑️  Removing old container..."
+    if ! docker ps &> /dev/null; then
+        sudo docker rm eml-station
+    else
+        docker rm eml-station
+    fi
+fi
+
 echo "🚀 Starting EncryptedMeshLink..."
 if ! docker ps &> /dev/null; then
     sudo docker run -d \
@@ -125,6 +144,30 @@ else
         -v "$EML_DIR/data:/app/data" \
         -v "$EML_DIR/logs:/app/logs" \
         "$IMAGE"
+fi
+
+# Wait for container to start and check status
+echo "⏳ Waiting for container to start..."
+sleep 3
+
+# Check if container started successfully
+if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "eml-station.*Up"; then
+    echo -e "${GREEN}✅ EncryptedMeshLink container started successfully!${NC}"
+else
+    echo -e "${RED}❌ Container failed to start. Checking logs...${NC}"
+    echo ""
+    echo "📋 Recent container logs:"
+    if ! docker ps &> /dev/null; then
+        sudo docker logs eml-station --tail=20
+    else
+        docker logs eml-station --tail=20
+    fi
+    echo ""
+    echo "🔧 Troubleshooting tips:"
+    echo "   - Check if Meshtastic device is properly connected"
+    echo "   - Verify USB device permissions: ls -la /dev/ttyUSB* /dev/ttyACM*"
+    echo "   - Try restarting: docker restart eml-station"
+    exit 1
 fi
 
 echo ""

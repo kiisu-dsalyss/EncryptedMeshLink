@@ -223,7 +223,26 @@ else
     docker pull "$IMAGE"
 fi
 
-echo "🚀 Starting EncryptedMeshLink..."
+# Check if container already exists and handle it
+if docker ps -a --format '{{.Names}}' | grep -q "^eml-station$"; then
+    echo "🔄 Existing EncryptedMeshLink container found"
+    if docker ps --format '{{.Names}}' | grep -q "^eml-station$"; then
+        echo "🛑 Stopping running container..."
+        if ! docker ps &> /dev/null; then
+            sudo docker stop eml-station
+        else
+            docker stop eml-station
+        fi
+    fi
+    echo "�️  Removing old container..."
+    if ! docker ps &> /dev/null; then
+        sudo docker rm eml-station
+    else
+        docker rm eml-station
+    fi
+fi
+
+echo "�🚀 Starting EncryptedMeshLink..."
 if ! docker ps &> /dev/null; then
     sudo docker compose up -d
 else
@@ -239,7 +258,12 @@ if docker ps --format "table {{.Names}}" | grep -q "eml-station"; then
     echo -e "${GREEN}✅ EncryptedMeshLink is running successfully!${NC}"
 else
     echo -e "${RED}❌ Container failed to start. Checking logs...${NC}"
-    docker logs eml-station --tail=20
+    docker logs eml-station --tail=20 2>/dev/null || echo "No logs available yet"
+    echo ""
+    echo "🔧 Troubleshooting tips:"
+    echo "   - Check if Meshtastic device is properly connected"
+    echo "   - Verify USB device permissions: ls -la /dev/ttyUSB* /dev/ttyACM*"
+    echo "   - Try manual restart: docker restart eml-station"
 fi
 
 echo ""

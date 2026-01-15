@@ -16,7 +16,6 @@ import { handleEchoMessage } from "./src/handlers/handleEchoMessage";
 import { registerLocalNodes } from "./src/handlers/registerLocalNodes";
 import { handlePeerDiscovered, handlePeerLost, handleDiscoveryError } from "./src/handlers/peerEvents";
 import { integrateDelayedDelivery } from "./src/delayedDelivery";
-import * as path from 'path';
 
 // Global cleanup state
 let globalDiscoveryClient: any = null;
@@ -196,45 +195,34 @@ async function main() {
     device.events.onMessagePacket.subscribe(async (packet) => {
       try {
         console.log(`📨 Received message from ${packet.from}: "${packet.data}"`);
+        console.log(`🔍 DEBUG: myNodeNum=${myNodeNum}, packet.from=${packet.from}, bridgeInitialized=${bridgeInitialized}`);
         
-        // Skip processing error messages and status responses to avoid feedback loops
-        if (packet.data && (
-          packet.data.startsWith('❌') ||
-          packet.data.startsWith('✅') ||
-          packet.data.startsWith('📡') ||
-          packet.data.startsWith('📭') ||
-          packet.data.startsWith('📊') ||
-          packet.data.startsWith('🔗')
-        )) {
-          console.log("⚠️ Skipping status/error message to avoid feedback loop");
-          return;
-        }
+        // TEMPORARILY DISABLED: Check if it's not from ourselves to avoid infinite loops
+        // We'll process all messages for debugging
+        const parsedMessage = MessageParser.parseMessage(packet.data);
+        console.log(`🔍 DEBUG: Parsed message type: ${parsedMessage.type}, raw data: "${packet.data}"`);
         
-        // Check if it's not from ourselves to avoid infinite loops
-        if (myNodeNum && packet.from !== myNodeNum && bridgeInitialized) {
-          const parsedMessage = MessageParser.parseMessage(packet.data);
-          
-          switch (parsedMessage.type) {
-            case 'relay':
-              if (parsedMessage.targetIdentifier && parsedMessage.message) {
-                await handleRelayMessage(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, cryptoService, packet, parsedMessage.targetIdentifier, parsedMessage.message);
-              }
-              break;
-            case 'status':
-              await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, packet);
-              break;
-            case 'nodes':
-              await handleListNodesRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
-              break;
-            case 'instructions':
-              await handleInstructionsRequest(device, myNodeNum, packet);
-              break;
-            case 'echo':
-              await handleEchoMessage(device, myNodeNum, packet);
-              break;
-          }
-        } else {
-          console.log("🔄 Skipping echo (message from self or no node info yet)");
+        switch (parsedMessage.type) {
+          case 'relay':
+            // Relay requires bridge to be initialized
+            if (bridgeInitialized && parsedMessage.targetIdentifier && parsedMessage.message) {
+              await handleRelayMessage(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, cryptoService, packet, parsedMessage.targetIdentifier, parsedMessage.message);
+            } else if (!bridgeInitialized) {
+              await device.sendText("❌ Bridge not initialized - relay unavailable", packet.from);
+            }
+            break;
+          case 'status':
+            await handleStatusRequest(device, knownNodes, remoteNodes, myNodeNum, globalDiscoveryClient, packet);
+            break;
+          case 'nodes':
+            await handleListNodesRequest(device, knownNodes, remoteNodes, myNodeNum, packet);
+            break;
+          case 'instructions':
+            await handleInstructionsRequest(device, myNodeNum, packet);
+            break;
+          case 'echo':
+            await handleEchoMessage(device, myNodeNum, packet);
+            break;
         }
       } catch (error) {
         console.error('❌ Failed to process message packet:', error instanceof Error ? error.message : 'Unknown error');

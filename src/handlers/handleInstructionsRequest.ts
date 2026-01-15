@@ -4,6 +4,7 @@
  */
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
+import { sendMessage } from '../utils/messageSplitter';
 
 /**
  * Handle instructions request from mesh network
@@ -28,7 +29,7 @@ export async function handleInstructionsRequest(
     ].join('\n');
     
     if (packet.from && packet.from !== myNodeNum) {
-      await device.sendText(instructions, packet.from);
+      await sendMessage(device, instructions, packet.from);
       console.log(`📤 Sent concise instructions to node ${packet.from}`);
     }
     
@@ -38,7 +39,7 @@ export async function handleInstructionsRequest(
     // Send error response if possible
     if (packet.from && packet.from !== myNodeNum) {
       try {
-        await device.sendText("❌ Instructions request failed", packet.from);
+        await sendMessage(device, "❌ Instructions request failed", packet.from);
       } catch (sendError) {
         console.error("❌ Failed to send error response:", sendError);
       }

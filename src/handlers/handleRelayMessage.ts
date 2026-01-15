@@ -9,6 +9,7 @@ import { CryptoService } from '../crypto/index';
 import { tryLocalRelay, NodeInfo } from './tryLocalRelay';
 import { tryRemoteRelay } from './tryRemoteRelay';
 import { RemoteNodeInfo } from './peerEvents';
+import { sendMessage } from '../utils/messageSplitter';
 
 export async function handleRelayMessage(
   device: MeshDevice,
@@ -54,7 +55,7 @@ export async function handleRelayMessage(
     // Send confirmation back to sender for remote relay
     try {
       const confirmationMessage = `✅ Message relayed to remote target "${targetIdentifier}"`;
-      await device.sendText(confirmationMessage, packet.from);
+      await sendMessage(device, confirmationMessage, packet.from);
       console.log(`📤 Remote relay confirmation sent to sender (${packet.from})`);
     } catch (error) {
       console.error(`❌ Failed to send remote relay confirmation:`, error);
@@ -65,7 +66,7 @@ export async function handleRelayMessage(
     // Send failure message back to sender
     try {
       const failureMessage = `❌ Relay failed: Target "${targetIdentifier}" not found`;
-      await device.sendText(failureMessage, packet.from);
+      await sendMessage(device, failureMessage, packet.from);
       console.log(`📤 Failure notification sent to sender (${packet.from})`);
     } catch (error) {
       console.error(`❌ Failed to send error message to sender:`, error);

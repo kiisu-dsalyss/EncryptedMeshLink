@@ -4,6 +4,7 @@
  */
 
 import type { MeshDevice } from "@jsr/meshtastic__core";
+import { sendMessage } from '../utils/messageSplitter';
 
 /**
  * Handle echo message request from mesh network
@@ -20,7 +21,7 @@ export async function handleEchoMessage(
     const echoResponse = `🔔 Echo response at ${timestamp} - Bridge is active and responding!`;
     
     if (packet.from && packet.from !== myNodeNum) {
-      await device.sendText(echoResponse, packet.from);
+      await sendMessage(device, echoResponse, packet.from);
       console.log(`📤 Sent echo response to node ${packet.from}`);
     }
     
@@ -30,7 +31,7 @@ export async function handleEchoMessage(
     // Send error response if possible
     if (packet.from && packet.from !== myNodeNum) {
       try {
-        await device.sendText("❌ Echo request failed", packet.from);
+        await sendMessage(device, "❌ Echo request failed", packet.from);
       } catch (sendError) {
         console.error("❌ Failed to send error response:", sendError);
       }

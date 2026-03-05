@@ -24,22 +24,99 @@ export async function tryRemoteRelay(
   
   console.log(`🌐 Attempting remote relay to "${targetIdentifier}"`);
   
-  // Step 1: Find target in remote nodes
+  // Step 1: Find target in remote nodes with best-match logic
   let targetRemoteNode: RemoteNodeInfo | undefined;
   
   const targetResult = parseTargetIdentifier(targetIdentifier);
+  const targetLower = targetIdentifier.toLowerCase().trim();
+  
   if (targetResult.isNumeric) {
-    // Try to find by node ID
-    targetRemoteNode = remoteNodes.get(targetResult.value as number);
-  } else {
-    // Try to find by shortName (like "r1aa", "r2aa", etc.) or displayName (like "r1Node", "r2Node", etc.)
-    // Case-insensitive matching
-    const targetLower = targetIdentifier.toLowerCase();
-    for (const [nodeId, nodeInfo] of remoteNodes.entries()) {
-      if (nodeInfo.shortName.toLowerCase() === targetLower || nodeInfo.displayName.toLowerCase() === targetLower) {
-        targetRemoteNode = nodeInfo;
-        break;
+    // Direct numeric match (node ID)
+    const targetNum = targetResult.value as number;
+    
+    // Try exact match first
+    targetRemoteNode = remoteNodes.get(targetNum);
+    
+    // If no exact match, try prefix matching (e.g., "464" matches "464130339")
+    if (!targetRemoteNode) {
+      const targetStr = targetNum.toString();
+      const candidates: { node: RemoteNodeInfo; score: number }[] = [];
+      
+      for (const [nodeId, nodeInfo] of remoteNodes.entries()) {
+        const nodeIdStr = nodeId.toString();
+        
+        // Check if node ID starts with target prefix
+        if (nodeIdStr.startsWith(targetStr)) {
+          // Prefer longer prefix matches (more specific)
+          const score = targetStr.length * 100 + nodeId;
+          candidates.push({ node: nodeInfo, score });
+        }
       }
+      
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => b.score - a.score); // Sort by score descending
+        targetRemoteNode = candidates[0].node;
+        console.log(`✅ Found remote target by node ID prefix: ${targetRemoteNode.displayName} (#${targetRemoteNode.nodeId})`);
+      }
+    } else {
+      console.log(`✅ Found remote target by exact node ID: ${targetRemoteNode.displayName} (#${targetNum})`);
+    }
+  } else {
+    // Try to find best match by name (display name, short name, or partial match)
+    const candidates: { node: RemoteNodeInfo; score: number }[] = [];
+    
+    for (const [nodeId, nodeInfo] of remoteNodes.entries()) {
+      const displayName = nodeInfo.displayName?.toLowerCase() || '';
+      const shortName = nodeInfo.shortName?.toLowerCase() || '';
+      const nodeIdStr = nodeId.toString();
+      
+      let score = 0;
+      
+      // Exact match on display name (highest priority)
+      if (displayName === targetLower) {
+        score = 1000;
+      }
+      // Exact match on short name
+      else if (shortName === targetLower) {
+        score = 900;
+      }
+      // Exact match on node ID (as string)
+      else if (nodeIdStr === targetLower) {
+        score = 950;
+      }
+      // Partial match at start of display name
+      else if (displayName.startsWith(targetLower)) {
+        score = 500;
+      }
+      // Partial match at start of short name
+      else if (shortName.startsWith(targetLower)) {
+        score = 450;
+      }
+      // Partial match anywhere in display name
+      else if (displayName.includes(targetLower)) {
+        score = 300;
+      }
+      // Partial match anywhere in short name
+      else if (shortName.includes(targetLower)) {
+        score = 250;
+      }
+      
+      if (score > 0) {
+        candidates.push({ node: nodeInfo, score });
+      }
+    }
+    
+    // Use the best matching candidate
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => b.score - a.score); // Sort by score descending
+      targetRemoteNode = candidates[0].node;
+      
+      const matchType = 
+        targetRemoteNode.displayName?.toLowerCase() === targetLower ? 'display name' :
+        targetRemoteNode.shortName?.toLowerCase() === targetLower ? 'short name' :
+        'partial match';
+      
+      console.log(`✅ Found remote target by ${matchType}: ${targetRemoteNode.displayName} (#${targetRemoteNode.nodeId})`);
     }
   }
   

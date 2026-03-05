@@ -28,10 +28,17 @@ export async function handleListNodesRequest(
         .filter(([nodeNum]) => nodeNum !== myNodeNum && nodeNum !== packet.from) // Filter out self and requester
         .sort((a, b) => a[0] - b[0]);
       
+      console.log(`   Local nodes after filter: ${sortedLocal.length}`);
+      
       for (const [nodeNum, nodeInfo] of sortedLocal) {
-        const longName = nodeInfo.user?.longName || `Node-${nodeNum}`;
-        const shortName = nodeInfo.user?.shortName || "📱";
-        nodeLines.push(`📱 ${longName} | ${shortName} | ${nodeNum}`);
+        try {
+          const longName = nodeInfo.user?.longName || `Node-${nodeNum}`;
+          const shortName = nodeInfo.user?.shortName || "📱";
+          const line = `📱 ${longName} | ${shortName} | ${nodeNum}`;
+          nodeLines.push(line);
+        } catch (localError) {
+          console.warn(`   Error processing local node ${nodeNum}:`, localError instanceof Error ? localError.message : localError);
+        }
       }
     }
     
@@ -39,38 +46,99 @@ export async function handleListNodesRequest(
     if (remoteNodes.size > 0) {
       const sortedRemote = Array.from(remoteNodes.entries()).sort((a, b) => a[0] - b[0]);
       
+      console.log(`   Remote nodes: ${sortedRemote.length}`);
+      
       for (const [nodeNum, nodeInfo] of sortedRemote) {
-        nodeLines.push(`🌍 ${nodeInfo.displayName} | ${nodeInfo.shortName} | ${nodeNum}`);
+        try {
+          const displayName = nodeInfo.displayName || `Remote-${nodeNum}`;
+          const shortName = nodeInfo.shortName || "🌍";
+          const line = `🌍 ${displayName} | ${shortName} | ${nodeNum}`;
+          nodeLines.push(line);
+        } catch (remoteError) {
+          console.warn(`   Error processing remote node ${nodeNum}:`, remoteError instanceof Error ? remoteError.message : remoteError);
+        }
       }
     }
     
-    // Create a single compact message
-    let message: string;
+    // Build node list messages with chunking for Meshtastic's 228-byte limit
+    const maxChunkSize = 160; // Conservative limit for safety margin
+    const messagesToSend: string[] = [];
+    
     if (nodeLines.length === 0) {
-      message = "📭 No nodes available";
+      messagesToSend.push("📭 No nodes available");
     } else {
-      // Get a sample node ID for the example
+      // Get sample node ID for usage example
       const sampleNodeId = Array.from(knownNodes.keys()).find(id => id !== myNodeNum && id !== packet.from) 
         || Array.from(remoteNodes.keys())[0] 
         || '123456';
       
-      message = `📡 Nodes (${nodeLines.length}):\n${nodeLines.join('\n')}\n\n💬 Usage: @{nodeId} message\nExample: @${sampleNodeId} hello`;
+      // Build header and usage info
+      const header = "📡 Nodes:\n";
+      const usageInfo = `\n💬 Usage: @{id} msg`;
+      
+      // Chunk the node lines
+      let currentChunk = header;
+      
+      for (let i = 0; i < nodeLines.length; i++) {
+        const line = nodeLines[i];
+        const testChunk = currentChunk + line + "\n";
+        
+        // If adding this line would exceed limit (and we have content), start new chunk
+        if (testChunk.length > maxChunkSize && currentChunk !== header) {
+          messagesToSend.push(currentChunk.trim());
+          currentChunk = line + "\n";
+        } else {
+          currentChunk += line + "\n";
+        }
+      }
+      
+      // Add remaining nodes with usage info
+      if (currentChunk !== header) {
+        currentChunk += usageInfo;
+        messagesToSend.push(currentChunk.trim());
+      }
+      
+      console.log(`   Split ${nodeLines.length} nodes into ${messagesToSend.length} message(s)`);
     }
     
     if (packet.from && packet.from !== myNodeNum) {
-      await device.sendText(message, packet.from);
-      console.log(`📤 Sent compact node list to ${packet.from} (${knownNodes.size + remoteNodes.size} total nodes)`);
+      console.log(`   Sending ${messagesToSend.length} message(s) to ${packet.from}...`);
+      
+      // Send all messages with delay between them
+      for (let i = 0; i < messagesToSend.length; i++) {
+        try {
+          await device.sendText(messagesToSend[i], packet.from);
+          console.log(`   ✓ Sent message ${i + 1}/${messagesToSend.length} (${messagesToSend[i].length} bytes)`);
+          
+          // Delay between messages to avoid overwhelming the mesh
+          if (i < messagesToSend.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 800));
+          }
+        } catch (sendError) {
+          console.error(`   ✗ Failed to send message ${i + 1}:`, sendError instanceof Error ? sendError.message : sendError);
+          throw sendError; // Re-throw to trigger error handler
+        }
+      }
+      
+      console.log(`📤 Sent ${messagesToSend.length} node list message(s) to ${packet.from}`);
     }
     
   } catch (error) {
-    console.error("❌ Failed to handle list nodes request:", error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error("❌ Failed to handle list nodes request:", errorMsg);
+    console.error("   Stack:", error instanceof Error ? error.stack : "N/A");
+    console.error("   knownNodes.size:", knownNodes.size);
+    console.error("   remoteNodes.size:", remoteNodes.size);
+    console.error("   packet.from:", packet.from);
+    console.error("   myNodeNum:", myNodeNum);
     
     // Send error response if possible
     if (packet.from && packet.from !== myNodeNum) {
       try {
         await device.sendText("❌ Node list request failed", packet.from);
       } catch (sendError) {
-        console.error("❌ Failed to send error response:", sendError);
+        const sendErrorMsg = sendError instanceof Error ? sendError.message : String(sendError);
+        console.error("❌ Failed to send error response:", sendErrorMsg);
       }
     }
   }

@@ -33,9 +33,9 @@ RUN mkdir -p /app/deployment/staging /app/deployment/production /app/deployment/
 # Expose port
 EXPOSE 3000
 
-# Health check with longer timeout for Pi
-HEALTHCHECK --interval=60s --timeout=30s --start-period=10s --retries=2 \
-    CMD npx tsx encryptedmeshlink.ts --health-check || exit 1
+# Health check with longer timeout for Pi — just verify process (no device access)
+HEALTHCHECK --interval=60s --timeout=5s --start-period=10s --retries=2 \
+    CMD pgrep -f "tsx encryptedmeshlink" > /dev/null || exit 1
 
 # Set entrypoint
 ENTRYPOINT ["./docker-entrypoint.sh"]

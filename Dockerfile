@@ -24,9 +24,9 @@ RUN mkdir -p /app/deployment/staging /app/deployment/production /app/deployment/
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD npx tsx encryptedmeshlink.ts --health-check || exit 1
+# Health check — just verify the main process is running (no device access)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=2 \
+    CMD pgrep -f "tsx encryptedmeshlink" > /dev/null || exit 1
 
 # Default command
 CMD ["npx", "tsx", "encryptedmeshlink.ts"]

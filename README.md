@@ -7,7 +7,7 @@ A powerful internet bridge system for Meshtastic mesh networks with encrypted P2
 12. **Delayed Message Delivery**: Automatic store-and-forward for offline nodes with priority queuing
 13. **Message Queue Infrastructure**: SQLite-based system with retry logic and TTL support
 14. **Rate Limiting Compliance**: Optimized heartbeat intervals to respect discovery service limits
-15. **Complete Test Coverage**: 266 tests passing across 17 comprehensive test suitesy capabilities.
+15. **Complete Test Coverage**: 266 tests passing across 17 comprehensive test suites.
 
 ## 🚀 Quick Start - One Command Setup
 

@@ -174,7 +174,7 @@ describe('Delayed Delivery System', () => {
       expect(queueManager.getMessagesForNode(123456)).toHaveLength(0);
     });
 
-    test('should mark messages as delivered', () => {
+  test('should mark messages as delivered', () => {
       const message = {
         id: 'test-1',
         targetNodeId: 123456,
@@ -192,6 +192,42 @@ describe('Delayed Delivery System', () => {
       
       const stats = queueManager.getStats();
       expect(stats.totalDelivered).toBe(1);
+    });
+
+    test('should cleanup expired messages', () => {
+      const now = Date.now();
+      const msg1 = {
+        id: 'exp-1',
+        targetNodeId: 999,
+        message: 'Expired 1',
+        priority: 1,
+        queuedAt: now - 10000,
+        retryCount: 0,
+        expiresAt: now - 5000
+      };
+
+      const msg2 = {
+        id: 'exp-2',
+        targetNodeId: 999,
+        message: 'Expired 2',
+        priority: 1,
+        queuedAt: now - 8000,
+        retryCount: 0,
+        expiresAt: now - 2000
+      };
+
+      queueManager.addMessage(msg1);
+      queueManager.addMessage(msg2);
+      expect(queueManager.getMessagesForNode(999)).toHaveLength(2);
+
+      const expired = queueManager.cleanupExpired();
+      const expiredIds = expired.map(m => m.id).sort();
+
+      expect(expiredIds).toEqual(['exp-1', 'exp-2']);
+
+      const stats = queueManager.getStats();
+      expect(stats.totalExpired).toBe(2);
+      expect(queueManager.getMessagesForNode(999)).toHaveLength(0);
     });
   });
 

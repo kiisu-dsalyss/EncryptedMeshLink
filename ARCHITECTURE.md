@@ -68,7 +68,7 @@ await connection.sendMessage(message);
 
 ## Component Responsibilities
 
-### Discovery Client (`src/discoveryClient.ts`)
+### Discovery Client (`src/discovery/index.ts`)
 - ✅ Register this station with discovery service
 - ✅ Fetch list of peer stations
 - ✅ Maintain heartbeat registration
@@ -113,7 +113,7 @@ Station A → Discovery Service ← Station B
 ## Key Files
 
 - `discovery-service/discovery.php` - Peer discovery only
-- `src/discoveryClient.ts` - Registration and peer lookup
+- `src/discovery/index.ts` - Registration and peer lookup
 - `src/bridge/transport.ts` - P2P transport (placeholder, warnings added)
 - `src/bridge/client.ts` - P2P client interface (disabled polling)
 - `src/enhancedRelayHandler.ts` - Main message routing logic

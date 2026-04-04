@@ -184,13 +184,11 @@ export class NodeRegistryManager extends EventEmitter {
       
       // Wait for response (simplified - in real implementation would use promise/callback)
       return new Promise((resolve) => {
-        const timeout = setTimeout(() => resolve(null), 5000);
-        
         const handler = (response: NodeQueryResponse) => {
           if (response.targetNodeId === nodeId) {
             clearTimeout(timeout);
             this.removeListener('node_query_response', handler);
-            
+
             if (response.found && response.stationId) {
               resolve({
                 nodeId,
@@ -204,8 +202,13 @@ export class NodeRegistryManager extends EventEmitter {
             }
           }
         };
-        
+
         this.on('node_query_response', handler);
+
+        const timeout = setTimeout(() => {
+          this.removeListener('node_query_response', handler);
+          resolve(null);
+        }, 5000);
       });
     } catch (error) {
       console.error('Node query failed:', error);
